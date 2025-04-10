@@ -41,10 +41,10 @@ const lessonContent = [
     categories: [
       { id: 'cat-1', name: 'OpenAI', logo: Logos.OpenAI },
       { id: 'cat-2', name: 'Google', logo: Logos.Google },
-      { id: 'cat-3', name: 'Anthropic', logo: Logos.Anthropic },
-      { id: 'cat-4', name: 'Meta', logo: Logos.Meta },
-      { id: 'cat-5', name: 'xAI', logo: Logos.xAI},
-      { id: 'cat-6', name: 'DeepSeek', logo: Logos.DeepSeek },
+      { id: 'cat-3', name: 'xAI', logo: Logos.xAI},
+      { id: 'cat-4', name: 'Anthropic', logo: Logos.Anthropic },
+      { id: 'cat-5', name: 'DeepSeek', logo: Logos.DeepSeek },
+      { id: 'cat-6', name: 'Meta', logo: Logos.Meta },
       { id: 'cat-7', name: 'Microsoft', logo: Logos.Microsoft },
     ],
     correctPairs: {
