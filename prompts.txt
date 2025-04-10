@@ -1,0 +1,30 @@
+Please add a new mini-game page before the quiz. The game is called "Catch the AI Origin!" and it should follow this concept:
+
+There are 3 baskets, each representing a region:
+
+- USA (e.g. with the US flag)
+- Europe (including the UK)
+- China
+
+These baskets are connected together at the bottom and move left and right as one group.
+
+Random AI-related items (company or product names) fall slowly from the top. Example items:
+
+USA: NVIDIA, OpenAI, Anthropic, Gemini, LLaMA, Runway, MidJourney, ElevenLabs
+Europe: Mistral AI, Stable Diffusion
+China: DeepSeek, Manus, Qwen, Kling
+
+
+The order, timing, and horizontal position of each falling item should be randomized, but spaced out enough to give the user time to react.
+The user must move the baskets horizontally (by arrow keys, drag, or touch) to catch the item in the correct regional basket.
+If the user catches all correctly, show a success message and enable the Next button to go to the quiz page.
+If one item is caught in the wrong basket, stop the game immediately and show a message like:
+"Oops! DeepSeek is from China."
+→ Offer a "Try Again" button to restart the game.
+
+The visual style should match the existing app:
+- Clean and elegant
+- Use the same fonts and rounded corner style
+- Background can be white/light for reading mode and dark for presentation mode, if possibl
+
+Make sure the game logic only enables progression after a full correct match, and that the entire game appears as a standalone page.
