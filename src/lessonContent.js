@@ -83,13 +83,13 @@ const lessonContent = [
   },
   { 
     type: 'page-break', 
-    title: 'Catch the AI Origin!' 
+    title: 'Minigame: Hứng AI' 
   },
   {
     type: 'game',
     gameType: 'catch-origin',
-    title: 'Catch the AI Origin!',
-    instruction: 'Di chuyển các giỏ để hứng. Đừng hứng sai giỏ!',
+    title: 'Hứng AI Rơi',
+    instruction: 'Di chuyển các giỏ để hứng. Đừng hứng sai giỏ nhé!',
     winningThreshold: 14,
     baskets: ['Europe', 'USA', 'China'],
     basketIcons: {

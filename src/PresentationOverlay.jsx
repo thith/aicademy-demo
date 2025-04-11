@@ -352,7 +352,8 @@ function PresentationOverlay({
   // Use the shouldPulse prop passed from App
 
   return (
-    <div className="fixed inset-0 bg-brand-gray-darker text-gray-100 flex flex-col items-center justify-center z-50 p-0 sm:p-4 overflow-y-auto presentation">
+    // Ensure flex-col and overflow-hidden on the main container
+    <div className="fixed inset-0 bg-brand-gray-darker text-gray-100 flex flex-col items-center z-50 overflow-hidden presentation">
       {/* Countdown Overlay */}
       {countdown !== null && (
         <div className="absolute inset-0 flex items-center justify-center z-20 bg-black bg-opacity-50">
@@ -360,28 +361,30 @@ function PresentationOverlay({
         </div>
       )}
 
-      {/* Main Content Area - Restore max-width */}
-      <div className="flex-1 flex items-center justify-center w-full max-w-5xl text-center p-1 sm:p-6 pb-20">
-        {currentDisplayElement ? (
-          // Render media element wrapper - Apply padding conditionally
-           <div className={`w-full ${currentMediaData?.type !== 'video' ? 'p-0 sm:p-4 bg-gray-800 rounded-lg' : ''}`}>
-            {currentDisplayElement}
-          </div>
-        ) : (
-          // Render text content directly if not media or during countdown
-          countdown === null ? (
-             <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
-               {sentence.split('').map((char, i) => (
-                 <span
-                   key={i}
-                   className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
-                 >
-                   {char}
-                 </span>
-               ))}
-             </p>
-          ) : <div></div> // Placeholder during countdown if no media
-        )}
+      {/* Main Content Area - Add overflow-y-auto and bottom padding */}
+      <div className={`flex-1 overflow-y-auto w-full max-w-5xl text-center p-1 sm:p-6 pb-24`}> {/* Added pb-24 */}
+        <div className="min-h-full flex flex-col justify-center items-center w-full">
+          {currentDisplayElement ? (
+            // Render media element wrapper - conditional padding/bg/border for mobile
+             <div className={`w-full ${currentMediaData?.type !== 'video' ? 'sm:p-4 sm:bg-gray-800 sm:rounded-lg' : ''}`}>
+              {currentDisplayElement}
+            </div>
+          ) : (
+            // Render text content directly if not media or during countdown
+            countdown === null ? (
+               <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
+                 {sentence.split('').map((char, i) => (
+                   <span
+                     key={i}
+                     className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
+                   >
+                     {char}
+                   </span>
+                 ))}
+               </p>
+            ) : <div></div> // Placeholder during countdown if no media
+          )}
+        </div>
       </div>
 
       {/* Media Delay Indicator */}
@@ -405,12 +408,12 @@ function PresentationOverlay({
 
       {/* Game/Quiz Status Toast */}
       {showStatusToast && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-black bg-opacity-80 text-white rounded-lg shadow">
+        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow">
           {statusMessage}
         </div>
       )}
 
-      {/* Footer Controls */}
+      {/* Footer Controls - Reverted to fixed positioning */}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-black bg-opacity-50 backdrop-blur-sm z-30">
         <div className="max-w-4xl mx-auto p-3 md:p-4">
           {/* Progress Bar */}

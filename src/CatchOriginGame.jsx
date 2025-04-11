@@ -11,8 +11,11 @@ export default function CatchOriginGame({
   winningThreshold = 8,
   baskets = [],
   basketIcons = {},
-  items = []
+  items = [],
+  title = '',
+  instruction = ''
 }) {
+  const isDarkMode = mode === 'presentation';
   const [allItems, setAllItems] = useState([]);
   const [caughtItems, setCaughtItems] = useState([]);
   const [score, setScore] = useState(0);
@@ -244,16 +247,26 @@ export default function CatchOriginGame({
 
   return (
     <>
+      {(title || instruction) && (
+        <div className="mb-4">
+          {title && <h3 className="text-lg font-semibold">{title}</h3>}
+          {instruction && <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-brand-gray'}`}>{instruction}</p>}
+        </div>
+      )}
       <div
         ref={containerRef}
         onMouseMove={handleMove}
         onTouchMove={handleMove}
         className={`relative w-full h-80 sm:h-96 border rounded-lg overflow-hidden ${
-          mode === 'presentation' ? 'bg-gray-800' : 'bg-white'
+          isDarkMode ? 'bg-gray-800' : 'bg-white'
         }`}
         style={{ touchAction: 'none' }} // Prevent scrolling on touch drag
         onTouchStart={(e) => e.preventDefault()} // Prevent default touch behavior
       >
+        {/* Score Counter - top left corner */}
+        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white font-bold px-2 py-1 rounded-lg text-sm z-10">
+          {score}/{winningThreshold}
+        </div>
         {/* Floor indicator - shows red flash when items hit the floor */}
         <div 
           className={`absolute bottom-0 left-0 right-0 h-1 transition-colors duration-300 ${
@@ -363,21 +376,11 @@ export default function CatchOriginGame({
         )}
       </div>
       
-      {/* Game info and score counter - styled for better mobile display */}
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:justify-between items-center text-xs">
-        <div className="bg-gray-100 rounded-lg p-2 text-gray-600">
+      {/* Game info instructions - styled for better mobile display */}
+      <div className="mt-2 grid grid-cols-1 sm:flex sm:justify-between items-center text-xs">
+        <div className="bg-gray-100 rounded-lg p-2 text-gray-600 w-full">
           <span className="hidden sm:inline">👉 Dùng phím mũi tên trên bàn phím để di chuyển giỏ ổn định hơn</span>
-          <span className="sm:hidden">👉 Tap vào điểm trên màn hình để gióng giỏ USA vào đó.</span>
-        </div>
-        
-        {/* Improved counter with two sections */}
-        <div className="flex overflow-hidden rounded-lg shadow-sm">
-          <div className="bg-blue-500 text-white font-bold px-3 py-2 flex items-center justify-center">
-            ĐIỂM
-          </div>
-          <div className="bg-green-500 text-white font-bold px-3 py-2 flex items-center justify-center min-w-[40px]">
-            {score}/{winningThreshold}
-          </div>
+          <span className="sm:hidden">👉 Tap vào điểm trên màn hình để gióng giỏ USA theo đó.</span>
         </div>
       </div>
     </>

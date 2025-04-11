@@ -88,42 +88,44 @@ function App() {
           type: 'minigame',
           gameType: item.gameType,
           title: item.title,
-          instruction: item.instruction,
-          element: item.gameType === 'catch-origin' ? (
-            <CatchOriginGame
-              key={counter}
-              onComplete={(correct) => {
-                setCatchOriginGameCorrect(correct);
-                if (correct) {
-                  setShouldPulse(true);
-                  setPulseKey(Date.now());
-                }
-              }}
-              mode="presentation"
-              winningThreshold={
-                item.winningThreshold || 8
-              }
-              baskets={item.baskets || []}
-              basketIcons={item.basketIcons || {}}
-              items={item.items || []}
-            />
-          ) : (
-            <DragDropGame
-              title={item.title}
-              instruction={item.instruction}
-              onCorrect={(correct) => {
-                setDragDropGameCorrect(correct);
-                if (correct) {
-                  setShouldPulse(true);
-                  setPulseKey(Date.now());
-                }
-              }}
-              mode="presentation"
-              items={item.items || []}
-              categories={item.categories || []}
-              correctPairs={item.correctPairs || {}}
-            />
-          )
+              instruction: item.instruction,
+              element: item.gameType === 'catch-origin' ? (
+                <CatchOriginGame
+                  title={item.title}
+                  instruction={item.instruction}
+                  key={counter}
+                  onComplete={(correct) => {
+                    setCatchOriginGameCorrect(correct);
+                    if (correct) {
+                      setShouldPulse(true);
+                      setPulseKey(Date.now());
+                    }
+                  }}
+                  mode="presentation"
+                  winningThreshold={
+                    item.winningThreshold || 8
+                  }
+                  baskets={item.baskets || []}
+                  basketIcons={item.basketIcons || {}}
+                  items={item.items || []}
+                />
+              ) : (
+                <DragDropGame
+                  title={item.title}
+                  instruction={item.instruction}
+                  onCorrect={(correct) => {
+                    setDragDropGameCorrect(correct);
+                    if (correct) {
+                      setShouldPulse(true);
+                      setPulseKey(Date.now());
+                    }
+                  }}
+                  mode="presentation"
+                  items={item.items || []}
+                  categories={item.categories || []}
+                  correctPairs={item.correctPairs || {}}
+                />
+              )
         };
         counter++;
       } else if (item.type === 'image') {
@@ -297,12 +299,6 @@ function App() {
               if (item.gameType === 'catch-origin') {
                 return (
                   <div key={idx} className="my-6">
-                    {!presentationMode && (
-                      <>
-                        <h4 className="text-md font-semibold mb-3 text-brand-gray-dark">{item.title}</h4>
-                        <p className="mb-4 text-sm text-brand-gray">{item.instruction}</p>
-                      </>
-                    )}
                     
                     <div className="relative p-0 sm:p-4">
                       {/* Show completion status and try again button if completed */}
@@ -328,11 +324,13 @@ function App() {
                       )}
                       
                       <CatchOriginGame
+                        title={item.title}
+                        instruction={item.instruction}
                         key={catchOriginResetKey}
                         onComplete={(success) => {
                           setCatchOriginGameCorrect(success);
                         }}
-                        mode="reading"
+                        mode={presentationMode ? 'presentation' : 'reading'}
                         started={!catchOriginGameCompletedAndNext}
                         winningThreshold={
                           mockContent.find(

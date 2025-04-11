@@ -193,11 +193,16 @@ export default function DragDropGame({
 
   return (
     <div className={`p-3 sm:p-8 my-6 -mx-3 rounded-none sm:mx-0 sm:rounded-lg shadow-lg border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-brand-gray-darker'
-      } ${checked && isCorrect ? '!border-brand-green' : ''}`}
-    >
-      <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-brand-gray-darker'}`}>{title}</h3>
-      <p className={`text-sm mb-5 ${isDarkMode ? 'text-gray-300' : 'text-brand-gray'}`}>{instruction}</p>
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-700 text-white max-sm:border-none max-sm:bg-transparent max-sm:shadow-none max-sm:rounded-none max-sm:p-3 max-sm:my-0 max-sm:-mx-3'
+          : 'bg-white border-gray-200 text-brand-gray-darker'
+      } ${checked && isCorrect ? '!border-brand-green' : ''}`}>
+      {title && (
+        <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-brand-gray-darker'}`}>{title}</h3>
+      )}
+      {instruction && (
+        <p className={`text-sm mb-5 ${isDarkMode ? 'text-gray-300' : 'text-brand-gray'}`}>{instruction}</p>
+      )}
 
       <DndContext
         sensors={sensors}
@@ -272,7 +277,7 @@ export default function DragDropGame({
             }`}
           >
             {isCorrect
-              ? (mode === 'reading' ? '✅ Tuyệt vời! Hãy ấn Next để đi tiếp.' : '✅ Tuyệt vời! Hãy ấn Continue để đi tiếp.')
+              ? (mode === 'reading' ? '✅ Tuyệt! Ấn Next để đi tiếp.' : '✅ Tuyệt! Ấn Continue để đi tiếp.')
               : '❌ Chưa đúng, hãy thử lại.'}
           </span>
         )}

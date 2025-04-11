@@ -58,9 +58,10 @@ export default function Quiz({ title, questions, onCorrect, mode = 'reading', ex
 
   return (
     <div className={`quiz-box p-1 sm:p-8 my-6 rounded-xl shadow-lg border ${
-      isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-brand-gray-darker'
-    } ${checked && isCorrectOverall ? '!border-brand-green' : ''}`}
-    >
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-700 text-white max-sm:border-none max-sm:bg-transparent max-sm:shadow-none max-sm:rounded-none max-sm:p-3 max-sm:my-0'
+          : 'bg-white border-gray-200 text-brand-gray-darker'
+      } ${checked && isCorrectOverall ? '!border-brand-green' : ''}`}>
       <h3 className={`text-lg font-semibold mb-5 ${isDarkMode ? 'text-white' : 'text-brand-gray-darker'}`}>{title}</h3>
       {questions.map((q, qIndex) => (
         <div key={qIndex} className={`mb-6 pb-6 ${isDarkMode ? 'border-b border-gray-700' : 'border-b border-gray-200'} last:border-b-0 last:pb-0`}>
