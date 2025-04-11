@@ -70,7 +70,6 @@ function PresentationOverlay({
 
   // Simplified countdown logic and state reset
   useEffect(() => {
-
     // Reset state when visibility changes or initial index changes
     setSentenceIndex(initialSentenceIndex);
     setCharIndex(0);
@@ -142,82 +141,101 @@ function PresentationOverlay({
 
     // Cleanup function for the animation timer
     return clearAnimationTimer;
-
   }, [sentenceIndex, charIndex, isPlaying, countdown, currentSpeed, sentences, mediaMap, mediaDelayRemaining, totalSteps]); // Added totalSteps
 
   // Media display and delay logic
   useEffect(() => {
-
     clearMediaTimers(); // Clear previous media timers
 
-      // Check if it's a media item and should be displayed/delayed
-      if (isPlaying && countdown === null && mediaMap[sentenceIndex] && mediaDelayRemaining === null) {
-        const currentMedia = mediaMap[sentenceIndex];
-        const type = currentMedia.type;
-        let shouldStartDelay = false;
-        let delayDuration = 0; // Default delay
+    // Check if it's a media item and should be displayed/delayed
+    if (isPlaying && countdown === null && mediaMap[sentenceIndex] && mediaDelayRemaining === null) {
+      const currentMedia = mediaMap[sentenceIndex];
+      const type = currentMedia.type;
+      let shouldStartDelay = false;
+      let delayDuration = 0; // Default delay
 
-        // Update progress immediately when showing media
-        const stepsCompleted = sentenceIndex + 1; // Count current media item as completed step
-        setProgress(totalSteps > 0 ? (stepsCompleted / totalSteps) * 100 : 0);
+      // Update progress immediately when showing media
+      const stepsCompleted = sentenceIndex + 1; // Count current media item as completed step
+      setProgress(totalSteps > 0 ? (stepsCompleted / totalSteps) * 100 : 0);
 
-        // Set appropriate status messages based on media type
-        if (type === 'image') {
-          setStatusMessage('Viewing image...');
-          shouldStartDelay = true;
-          delayDuration = currentMedia.delay ?? 8; // seconds, default 8
-        } else if (type === 'minigame') {
-          // Check if it's a drag-drop game or catch-origin game
-          const isDragDropGame = currentMedia.element && currentMedia.element.type === DragDropGame;
-          const isCatchOriginGame = currentMedia.element && currentMedia.element.type === CatchOriginGame;
-          
-          // Default message
-          setStatusMessage('Complete the game to continue');
-          
-          const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
-          if (isGameDone) {
-            advance();
-            return; // skip delay and toast
-          } else {
-            // If game not correct, pause indefinitely until user interacts or exits
-            setIsPlaying(false);
-            setStatusMessage('❌ Game not correct yet, please try again.');
-          }
-        } else if (type === 'quiz') {
-          // Only delay if the quiz is already marked correct
-          if (quizCorrect) {
-            advance();
-            return; // skip delay and toast
-          } else {
-            // If quiz not correct, pause indefinitely
-            setIsPlaying(false);
-            setStatusMessage('Answer correctly to continue');
-         }
-        } else if (type === 'video') {
-          setStatusMessage('Playing video...');
-          shouldStartDelay = true;
-          delayDuration = 15; // Adjust delay for video viewing time
+      // Set appropriate status messages based on media type
+      if (type === 'image') {
+        setStatusMessage('Viewing image...');
+        shouldStartDelay = true;
+        delayDuration = currentMedia.delay ?? 8; // seconds, default 8
+      } else if (type === 'game') { // Changed from 'minigame' to 'game'
+        // Check if it's a drag-drop game or catch-origin game
+        const isDragDropGame = currentMedia.element && currentMedia.element.type === DragDropGame;
+        const isCatchOriginGame = currentMedia.element && currentMedia.element.type === CatchOriginGame;
+        
+        // Default message
+        setStatusMessage('Complete the game to continue');
+        
+        // For games, always pause when we reach them
+        setIsPlaying(false);
+        
+        const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
+        if (isGameDone) {
+          // Don't auto-advance, let the user click the Continue button
+          setLocalPulse(true); // Make the Continue button pulse
+          return; // skip delay and toast
+        } else {
+          // If game not correct, pause indefinitely until user interacts or exits
+          setStatusMessage('❌ Game not correct yet, please try again.');
         }
-        // Removed highlight type check - it's treated as text now
-
-        // Start the delay timer if applicable
-        if (shouldStartDelay && delayDuration > 0) {
-         setMediaDelayRemaining(delayDuration);
-
-          // Countdown timer for the UI
-          mediaDelayCountdownRef.current = setInterval(() => {
-            setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
-          }, 1000);
-
-          // Timer to advance after the delay
-          mediaDelayTimerRef.current = setTimeout(advance, delayDuration * 1000);
+      } else if (type === 'quiz') {
+        // For quizzes, always pause when we reach them
+        setIsPlaying(false);
+        
+        // Only delay if the quiz is already marked correct
+        if (quizCorrect) {
+          // Don't auto-advance, let the user click the Continue button
+          setLocalPulse(true); // Make the Continue button pulse
+          return; // skip delay and toast
+        } else {
+          // If quiz not correct, pause indefinitely
+          setStatusMessage('Answer correctly to continue');
         }
+      } else if (type === 'video') {
+        setStatusMessage('Playing video...');
+        shouldStartDelay = true;
+        delayDuration = 15; // Adjust delay for video viewing time
       }
+      // Removed highlight type check - it's treated as text now
+
+      // Start the delay timer if applicable
+      if (shouldStartDelay && delayDuration > 0) {
+        setMediaDelayRemaining(delayDuration);
+
+        // Countdown timer for the UI
+        mediaDelayCountdownRef.current = setInterval(() => {
+          setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
+        }, 1000);
+
+        // Timer to advance after the delay
+        mediaDelayTimerRef.current = setTimeout(advance, delayDuration * 1000);
+      }
+    }
 
     // Cleanup function for media timers
     return clearMediaTimers;
-
   }, [isPlaying, countdown, mediaMap, sentenceIndex, dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, totalSteps]); // Dependencies updated
+
+  // Effect to handle game/quiz completion and pulse the Continue button
+  useEffect(() => {
+    const currentMedia = mediaMap[sentenceIndex];
+    if (currentMedia) { // Check if on a media slide
+      const isDragDropGame = currentMedia.element?.type === DragDropGame;
+      const isCatchOriginGame = currentMedia.element?.type === CatchOriginGame;
+      const isQuiz = currentMedia.type === 'quiz';
+      
+      // If game or quiz is completed, pulse the Continue button
+      if ((isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect) || (isQuiz && quizCorrect)) {
+        setLocalPulse(true); // Make the Continue button pulse
+        setIsPlaying(false); // Ensure we're paused
+      }
+    }
+  }, [dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, sentenceIndex, mediaMap]);
 
   // Function to advance to the next sentence/media item
   const advance = () => {
@@ -236,8 +254,8 @@ function PresentationOverlay({
       setSentenceIndex(nextIndex);
       setCharIndex(0); // Reset character index for the next sentence/media placeholder
       setIsPlaying(true); // Ensure playing continues
-       // Update progress immediately for the next step
-       setProgress(totalSteps > 0 ? ((nextIndex + 1) / totalSteps) * 100 : 0);
+      // Update progress immediately for the next step
+      setProgress(totalSteps > 0 ? ((nextIndex + 1) / totalSteps) * 100 : 0);
     }
   };
 
@@ -271,10 +289,10 @@ function PresentationOverlay({
     if (currentlyPlaying) {
       // If resuming and was paused during a media delay, restart the delay timer
       if (mediaDelayRemaining !== null) {
-         mediaDelayCountdownRef.current = setInterval(() => {
-             setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
-         }, 1000);
-         mediaDelayTimerRef.current = setTimeout(advance, mediaDelayRemaining * 1000);
+        mediaDelayCountdownRef.current = setInterval(() => {
+          setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
+        }, 1000);
+        mediaDelayTimerRef.current = setTimeout(advance, mediaDelayRemaining * 1000);
       }
       // If resuming at the very end, restart from beginning with full reset
       else if (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)) {
@@ -288,9 +306,8 @@ function PresentationOverlay({
       // If pausing, clear any active timers
       clearAnimationTimer();
       clearMediaTimers();
-   }
+    }
   };
-
 
   if (!isVisible) return null; // Don't render anything if not visible
 
@@ -305,51 +322,192 @@ function PresentationOverlay({
         ? `${currentMediaData.src}?autoplay=1&muted=1&title=0&byline=0&portrait=0`
         : currentMediaData.src;
       currentDisplayElement = (
-         <div key={videoKey} className="relative w-full" style={{ paddingTop: '56.25%' }}>
-           <iframe
-             src={videoSrc}
-             title={currentMediaData.title}
-             frameBorder="0"
-             allow="autoplay; fullscreen; picture-in-picture"
-             allowFullScreen
-             className="absolute top-0 left-0 w-full h-full rounded-lg"
-           ></iframe>
-         </div>
+        <div key={videoKey} className="relative w-full" style={{ paddingTop: '56.25%' }}>
+          <iframe
+            src={videoSrc}
+            title={currentMediaData.title}
+            frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            className="absolute top-0 left-0 w-full h-full rounded-lg"
+          ></iframe>
+        </div>
       );
+    } else if (currentMediaData.type === 'image') {
+      // Fix for image display - handle both element and src cases
+      if (currentMediaData.element) {
+        currentDisplayElement = currentMediaData.element;
+      } else if (currentMediaData.src) {
+        currentDisplayElement = (
+          <img 
+            src={currentMediaData.src} 
+            alt={currentMediaData.title || "Image"} 
+            className="max-w-full max-h-[70vh] mx-auto rounded-lg"
+          />
+        );
+      }
     } else if (currentMediaData.element && currentMediaData.type !== 'highlight') { // Exclude highlight element
-       // Pass externalTriggerCheck to DragDropGame and Quiz
-       const isDragDropGame = currentMediaData.element && currentMediaData.element.type === DragDropGame;
-       const isQuiz = currentMediaData.type === 'quiz';
-       
-       const elementType = currentMediaData.element?.type;
-       const extraProps = { mode: 'presentation' };
-       if (elementType === DragDropGame || elementType?.name === 'Quiz') {
-         extraProps.externalTriggerCheck = triggerGameCheck;
-       }
-       currentDisplayElement = React.cloneElement(
-         currentMediaData.element,
-         extraProps
-       );
+      // Pass externalTriggerCheck to DragDropGame and Quiz
+      const isDragDropGame = currentMediaData.element && currentMediaData.element.type === DragDropGame;
+      const isCatchOriginGame = currentMediaData.element && currentMediaData.element.type === CatchOriginGame;
+      const isQuiz = currentMediaData.type === 'quiz';
+      
+      const elementType = currentMediaData.element?.type;
+      const extraProps = { 
+        mode: 'presentation',
+        externalTriggerCheck: triggerGameCheck
+      };
+      
+      // Pass title and instruction to game components
+      if (isCatchOriginGame) {
+        extraProps.title = currentMediaData.title || '';
+        extraProps.instruction = currentMediaData.instruction || ''; // Changed from description to instruction
+      }
+      
+      currentDisplayElement = React.cloneElement(
+        currentMediaData.element,
+        extraProps
+      );
     }
   }
 
   // If it's not a media item OR it's a highlight item (treated as text), render the text animation
   if (!currentDisplayElement && countdown === null) {
-     currentDisplayElement = (
-       <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
-         {sentence.split('').map((char, i) => (
-           <span
-             key={i}
-             className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
-           >
-             {char}
-           </span>
-         ))}
-       </p>
-     );
+    currentDisplayElement = (
+      <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
+        {sentence.split('').map((char, i) => (
+          <span
+            key={i}
+            className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
+          >
+            {char}
+          </span>
+        ))}
+      </p>
+    );
   }
 
-  // Use the shouldPulse prop passed from App
+  // Define common variables for button state
+  const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
+  const isGameType = currentMediaData?.type === 'game'; // Changed from isMinigame to isGameType
+  const isQuizType = currentMediaData?.type === 'quiz';
+  const isDragDropGame = currentMediaData?.element?.type === DragDropGame;
+  const isCatchOriginGame = currentMediaData?.element?.type === CatchOriginGame;
+  const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
+  const isQuizDone = quizCorrect;
+  // Fix: Include isDragDropGame and isCatchOriginGame in isGameOrQuiz check
+  const isGameOrQuiz = isGameType || isQuizType || isDragDropGame || isCatchOriginGame;
+  const isGameOrQuizDone = (isGameType && isGameDone) || (isQuizType && isQuizDone) || 
+                          (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
+
+  // Helper function to render button content based on state
+  const renderButtonContent = () => {
+    // Special case for games and quizzes
+    if (isGameOrQuiz) {
+      if (isGameOrQuizDone) {
+        // Game or quiz is completed - "Continue"
+        return (
+          <>
+            <i className="fas fa-play"></i>
+            <span className="hidden sm:inline ml-1">Continue</span>
+          </>
+        );
+      } else {
+        // Game or quiz not completed - "Waiting..."
+        return (
+          <>
+            <i className="fas fa-hourglass-half"></i>
+            <span className="hidden sm:inline ml-1">Waiting...</span>
+          </>
+        );
+      }
+    }
+    
+    // For non-game/quiz content
+    if (isImageOrVideo) {
+      return (
+        <>
+          <i className="fas fa-forward"></i>
+          <span className="hidden sm:inline ml-1">Skip</span>
+        </>
+      );
+    } else if (isPlaying) {
+      return (
+        <>
+          <i className="fas fa-pause"></i>
+          <span className="hidden sm:inline ml-1">Pause</span>
+        </>
+      );
+    } else {
+      // Not playing - determine the appropriate button label
+      if (sentenceIndex === 0) {
+        // First slide - always "Start"
+        return (
+          <>
+            <i className="fas fa-play"></i>
+            <span className="hidden sm:inline ml-1">Start</span>
+          </>
+        );
+      } else if (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)) {
+        // Last slide - "Start Over"
+        return (
+          <>
+            <i className="fas fa-rotate-right"></i>
+            <span className="hidden sm:inline ml-1">Start Over</span>
+          </>
+        );
+      } else {
+        // Regular slide that's paused - "Continue"
+        return (
+          <>
+            <i className="fas fa-play"></i>
+            <span className="hidden sm:inline ml-1">Continue</span>
+          </>
+        );
+      }
+    }
+  };
+
+  // Determine if the button should be disabled
+  // For games/quizzes, the button should be enabled only when the game is in a checkable state
+  const isButtonDisabled = countdown !== null;
+
+  // Force advance for game/quiz completion
+  const handleButtonClick = () => {
+    setLocalPulse(false);
+
+    const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
+    if (isImageOrVideo) {
+      skipDelay();
+      return;
+    }
+
+    // Special handling for games and quizzes
+    if (isGameOrQuiz) {
+      if (isGameOrQuizDone) {
+        // If game/quiz is completed, advance to next slide
+        advance();
+        return;
+      } else {
+        // If game/quiz is not completed, show appropriate message
+        // console.log("Game/quiz not completed, showing message...");
+        
+        // Show different messages for games and quizzes
+        if (isQuizType) {
+          setStatusMessage('Complete the quiz to continue');
+        } else {
+          setStatusMessage('Complete the game to continue');
+        }
+        
+        setShowStatusToast(true);
+        setTimeout(() => setShowStatusToast(false), 3000);
+        return;
+      }
+    }
+
+    // For regular slides, toggle play/pause
+    togglePlayPause();
+  };
 
   return (
     // Ensure flex-col and overflow-hidden on the main container
@@ -366,22 +524,22 @@ function PresentationOverlay({
         <div className="min-h-full flex flex-col justify-center items-center w-full">
           {currentDisplayElement ? (
             // Render media element wrapper - conditional padding/bg/border for mobile
-             <div className={`w-full ${currentMediaData?.type !== 'video' ? 'sm:p-4 sm:bg-gray-800 sm:rounded-lg' : ''}`}>
+            <div className={`w-full ${currentMediaData?.type !== 'video' ? 'sm:p-4 sm:bg-gray-800 sm:rounded-lg' : ''}`}>
               {currentDisplayElement}
             </div>
           ) : (
             // Render text content directly if not media or during countdown
             countdown === null ? (
-               <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
-                 {sentence.split('').map((char, i) => (
-                   <span
-                     key={i}
-                     className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
-                   >
-                     {char}
-                   </span>
-                 ))}
-               </p>
+              <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
+                {sentence.split('').map((char, i) => (
+                  <span
+                    key={i}
+                    className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
+                  >
+                    {char}
+                  </span>
+                ))}
+              </p>
             ) : <div></div> // Placeholder during countdown if no media
           )}
         </div>
@@ -446,121 +604,31 @@ function PresentationOverlay({
             <div className="flex gap-3">
               <button
                 key={pulseKey}
-                onClick={() => {
-                  setLocalPulse(false);
-                  const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
-
-                  if (isImageOrVideo) {
-                    skipDelay();
-                    return;
-                  }
-
-                  const isMinigame = currentMediaData?.type === 'minigame';
-                  const isQuizType = currentMediaData?.type === 'quiz';
-                  const isDragDropGame = currentMediaData?.element && currentMediaData.element.type === DragDropGame;
-                  const isCatchOriginGame = currentMediaData?.element && currentMediaData.element.type === CatchOriginGame;
-                  const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
-                  const isQuizDone = quizCorrect;
-
-                  if (
-                    !isPlaying &&
-                    (
-                      (isMinigame && !isGameDone) ||
-                      (isQuizType && !isQuizDone)
-                    )
-                  ) {
-                    if (isMinigame && !isGameDone) {
-                      setStatusMessage('Complete the game to continue');
-                      setShowStatusToast(true);
-                      setTimeout(() => setShowStatusToast(false), 2000);
-                      return;
-                    }
-
-                    if (isQuizType && !isQuizDone) {
-                      setStatusMessage('Complete the quiz to continue');
-                      setShowStatusToast(true);
-                      setTimeout(() => setShowStatusToast(false), 2000);
-                      return;
-                    }
-                  }
-
-                  if (
-                    !isPlaying &&
-                    (
-                      (isMinigame && !isGameDone) ||
-                      (isQuizType && !isQuizDone)
-                    )
-                  ) {
-                    // If game/quiz is not done, check if it's ready to check
-                    if (isMinigame && !isGameDone) {
-                      if (isDragDropGame) {
-                        setTriggerGameCheck(prev => !prev);
-                        return;
-                      } else if (isCatchOriginGame) {
-                        setShowStatusToast(true);
-                        setTimeout(() => setShowStatusToast(false), 2000);
-                        return;
-                      }
-                    } else if (isQuizType && !isQuizDone) {
-                      setTriggerGameCheck(prev => !prev);
-                      return;
-                    }
-                  }
-
-                  togglePlayPause();
-                }}
-                disabled={countdown !== null}
+                onClick={handleButtonClick}
+                disabled={isButtonDisabled}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow ${
-                  countdown !== null
+                  isButtonDisabled
                     ? 'bg-gray-500 text-gray-400 cursor-not-allowed'
                     : (currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video'))
                       ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
-                      : isPlaying
-                        ? 'bg-gray-300 hover:bg-gray-400 text-gray-800'
-                        : 'bg-brand-green hover:bg-brand-green-dark text-white'
-                } ${localPulse ? 'animate-pulse-custom' : ''}`}
+                      : isGameOrQuiz
+                        ? (isGameOrQuizDone
+                            ? 'bg-brand-green hover:bg-brand-green-dark text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white')
+                        : isPlaying
+                          ? 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                          : 'bg-brand-green hover:bg-brand-green-dark text-white'
+                } ${(localPulse || (isGameOrQuiz && isGameOrQuizDone)) ? 'animate-pulse-custom' : ''}`}
               >
-{(() => {
-  const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
-  if (isImageOrVideo) {
-    return (
-      <>
-        <i className="fas fa-forward"></i>
-        <span className="hidden sm:inline ml-1">Skip</span>
-      </>
-    );
-  } else if (isPlaying) {
-    return (
-      <>
-        <i className="fas fa-pause"></i>
-        <span className="hidden sm:inline ml-1">Pause</span>
-      </>
-    );
-  } else {
-    return (
-      <>
-        <i className={`fas ${
-          (sentenceIndex === 0 || (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)))
-            ? ((sentenceIndex === 0) ? 'fa-play' : 'fa-rotate-right')
-            : 'fa-play'
-        }`}></i>
-        <span className="hidden sm:inline ml-1">
-          {(sentenceIndex === 0 || (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)))
-            ? ((sentenceIndex === 0) ? 'Start' : 'Start Over')
-            : 'Continue'}
-        </span>
-      </>
-    );
-  }
-})()}
+                {renderButtonContent()}
               </button>
-<button
-  onClick={() => onClose(sentenceIndex)} // Pass current sentenceIndex on close
-  className="px-4 py-1.5 rounded-md bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium transition-colors"
->
-  <i className="hidden sm:inline fas fa-times"></i>
-  <span className="ml-0 sm:ml-1">Close</span>
-</button>
+              <button
+                onClick={() => onClose(sentenceIndex)} // Pass current sentenceIndex on close
+                className="px-4 py-1.5 rounded-md bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium transition-colors"
+              >
+                <i className="hidden sm:inline fas fa-times"></i>
+                <span className="ml-0 sm:ml-1">Close</span>
+              </button>
             </div>
           </div>
         </div>

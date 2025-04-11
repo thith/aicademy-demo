@@ -1,19 +1,16 @@
+Cache AI Orgin Game:
+
 Please add a new mini-game page before the quiz. The game is called "Catch the AI Origin!" and it should follow this concept:
-
 There are 3 baskets, each representing a region:
-
 - USA (e.g. with the US flag)
 - Europe (including the UK)
 - China
 
 These baskets are connected together at the bottom and move left and right as one group.
-
 Random AI-related items (company or product names) fall slowly from the top. Example items:
-
-USA: NVIDIA, OpenAI, Anthropic, Gemini, LLaMA, Runway, MidJourney, ElevenLabs
-Europe: Mistral AI, Stable Diffusion
-China: DeepSeek, Manus, Qwen, Kling
-
+- USA: NVIDIA, OpenAI, Anthropic, Gemini, LLaMA, Runway, MidJourney, ElevenLabs
+- Europe: Mistral AI, Stable Diffusion
+- China: DeepSeek, Manus, Qwen, Kling
 
 The order, timing, and horizontal position of each falling item should be randomized, but spaced out enough to give the user time to react.
 The user must move the baskets horizontally (by arrow keys, drag, or touch) to catch the item in the correct regional basket.
@@ -28,3 +25,70 @@ The visual style should match the existing app:
 - Background can be white/light for reading mode and dark for presentation mode, if possibl
 
 Make sure the game logic only enables progression after a full correct match, and that the entire game appears as a standalone page.
+
+===================
+
+Home Page:
+---
+
+### **AIcademy Homepage – Implementation Instructions**
+
+Please implement this new **Homepage screen** based on the attached mockup. This screen will act as the main entry point before users begin a course.
+
+---
+
+### **References Provided:**
+- **Homepage mockup** (designed illustration for this screen)
+- **Assets:**  
+  - Full AIcademy logo (owl + stylized text)  
+  - Course illustration (AI owl with laptop and presentation board)  
+
+Please use these assets directly and refer to the layout file to keep everything aligned with the overall design system.
+
+---
+
+### **Design Requirements (Top to Bottom):**
+
+#### 1. **AIcademy Logo**
+- Centered at the top.
+- Use the provided full logo (not just the owl).
+
+#### 2. **Course Title**
+- Text:  
+  `"Understanding and Applying AI to Study and Work"`  
+- Style: bold, centered, same font and size hierarchy as used in existing screens.
+
+#### 3. **HOT Tag**
+- Display a small rounded tag below the title: `HOT 🔥`
+- Use orange/yellow background, consistent with tag styles in the design system.
+
+#### 4. **Course Illustration**
+- Centered below the tag.
+- Use the provided owl + board image.
+- Should feel cohesive and polished within the layout.
+
+#### 5. **Buttons**
+- Two action buttons:
+  - `Start Course` (primary green button)
+  - `Start in Theater Mode` (secondary white button with green border)
+
+Style and hover states should match buttons used in other parts of the platform.
+
+#### 6. **Syllabus Link**
+- Below the buttons:  
+  `View Syllabus →`  
+- Subtle styling, but clearly interactive.
+
+#### 7. **Course Info**
+- Bottom center text:  
+  `Author: AIcademy Team | Updated: 04/2025 | Level: Beginner`  
+- Use muted, small text styling.
+
+---
+
+### **Styling Notes:**
+- Follow spacing, font, and color rules from the **provided layout reference**.
+- Ensure design **matches the visual style** of the existing screens.
+- Layout should be responsive and mobile-friendly where applicable.
+
+Let me know if you need clarifications or component breakdowns.

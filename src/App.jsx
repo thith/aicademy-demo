@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Homepage from './Homepage';
 import DragDropGame from './DragDropGame';
 import Quiz from './Quiz';
 import PresentationOverlay from './PresentationOverlay';
@@ -10,22 +11,31 @@ import { getLessonContent } from './config.js';
 const mockContent = getLessonContent();
 
 function App() {
+  const [isCourseStarted, setIsCourseStarted] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [dragDropGameCorrect, setDragDropGameCorrect] = useState(false);
   const [catchOriginGameCorrect, setCatchOriginGameCorrect] = useState(false);
   const [quizCorrect, setQuizCorrect] = useState(false);
   const [shouldPulse, setShouldPulse] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
-
   const [catchOriginResetKey, setCatchOriginResetKey] = useState(0);
-
   const [dragDropGameCompletedAndNext, setDragDropGameCompletedAndNext] = useState(false);
   const [catchOriginGameCompletedAndNext, setCatchOriginGameCompletedAndNext] = useState(false);
   const [quizCompletedAndNext, setQuizCompletedAndNext] = useState(false);
-  const [presentationMode, setPresentationMode] = useState(false);
   const [showModeDialog, setShowModeDialog] = useState(false);
   const [targetMode, setTargetMode] = useState('reading');
   const [previousPage, setPreviousPage] = useState(0);
+
+  const handleStartCourse = () => {
+    setIsCourseStarted(true);
+    setPresentationMode(false);
+  };
+
+  const handleStartTheaterMode = () => {
+    setIsCourseStarted(true);
+    setPresentationMode(true);
+  };
 
   // Recalculate pages and page titles based on lessonContent
   const { pages, pageTitles } = useMemo(() => {
@@ -58,8 +68,7 @@ function App() {
     }
 
     return { pages: calculatedPages, pageTitles: titles };
-  }, []);
-
+  }, [mockContent]);
 
   const { flatSentences, mediaMap } = useMemo(() => {
     // Recalculate flatSentences and mediaMap based on potentially updated lessonContent
@@ -82,100 +91,73 @@ function App() {
             }
           });
         });
-      } else if (item.type === 'game') {
-        sentences.push(`🔍 ${item.title}`); // Placeholder text
+      } else if (item.type !== 'page-break') { // Count other non-page-break items as one step
+        sentences.push(`[${item.type}] ${item.title || ''}`); // Placeholder text
         map[counter] = {
-          type: 'minigame',
-          gameType: item.gameType,
+          type: item.type,
+          ...(item.type === 'game' && { gameType: item.gameType }),
           title: item.title,
-              instruction: item.instruction,
-              element: item.gameType === 'catch-origin' ? (
-                <CatchOriginGame
-                  title={item.title}
-                  instruction={item.instruction}
-                  key={counter}
-                  onComplete={(correct) => {
-                    setCatchOriginGameCorrect(correct);
-                    if (correct) {
-                      setShouldPulse(true);
-                      setPulseKey(Date.now());
-                    }
-                  }}
-                  mode="presentation"
-                  winningThreshold={
-                    item.winningThreshold || 8
-                  }
-                  baskets={item.baskets || []}
-                  basketIcons={item.basketIcons || {}}
-                  items={item.items || []}
-                />
-              ) : (
-                <DragDropGame
-                  title={item.title}
-                  instruction={item.instruction}
-                  onCorrect={(correct) => {
-                    setDragDropGameCorrect(correct);
-                    if (correct) {
-                      setShouldPulse(true);
-                      setPulseKey(Date.now());
-                    }
-                  }}
-                  mode="presentation"
-                  items={item.items || []}
-                  categories={item.categories || []}
-                  correctPairs={item.correctPairs || {}}
-                />
-              )
-        };
-        counter++;
-      } else if (item.type === 'image') {
-        sentences.push("🌍 Hình ảnh minh họa:"); // Placeholder text
-        map[counter] = {
-          type: 'image',
-          element: (
-            <img
-              src={item.src}
-              alt={item.alt}
-              className="rounded shadow mx-auto my-4"
-            />
-          )
-        };
-        counter++;
-      } else if (item.type === 'quiz') {
-        // Add a placeholder for the quiz in the presentation mode
-        sentences.push(`🧠 ${item.title}`);
-        map[counter] = {
-          type: 'quiz',
-          element: (
-            <Quiz
-              title={item.title}
-              questions={item.questions}
-              onCorrect={(correct) => {
-                setQuizCorrect(correct);
+          ...(item.type === 'game' && { instruction: item.instruction }),
+          ...(item.type === 'game' && { element: item.gameType === 'catch-origin' ? (
+            <CatchOriginGame
+              key={counter}
+              onComplete={(correct) => {
+                setCatchOriginGameCorrect(correct);
                 if (correct) {
                   setShouldPulse(true);
                   setPulseKey(Date.now());
                 }
               }}
-              mode="reading"
+              mode="presentation"
+              winningThreshold={
+                item.winningThreshold || 8
+              }
+              baskets={item.baskets || []}
+              basketIcons={item.basketIcons || {}}
+              items={item.items || []}
             />
-          )
-        };
-        counter++;
-      } else if (item.type === 'video') {
-        sentences.push(`🎬 ${item.title}`); // Placeholder text
-        map[counter] = {
-          type: 'video',
-          src: item.src,
-          title: item.title,
-          element: null // Rendered specially in PresentationOverlay
+          ) : (
+            <DragDropGame
+              title={item.title}
+              instruction={item.instruction}
+              onCorrect={(correct) => {
+                setDragDropGameCorrect(correct);
+                if (correct) {
+                  setShouldPulse(true);
+                  setPulseKey(Date.now());
+                }
+              }}
+              mode="presentation"
+              items={item.items || []}
+              categories={item.categories || []}
+              correctPairs={item.correctPairs || {}}
+            />
+          )}),
+          ...(item.type === 'quiz' && { 
+            element: (
+              <Quiz
+                title={item.title}
+                questions={item.questions}
+                onCorrect={(correct) => {
+                  setQuizCorrect(correct);
+                  if (correct) {
+                    setShouldPulse(true);
+                    setPulseKey(Date.now());
+                  }
+                }}
+                mode="reading"
+              />
+            )
+          }),
+          ...(item.type === 'image' && { src: item.src, alt: item.alt }),
+          ...(item.type === 'video' && { src: item.src, title: item.title }),
         };
         counter++;
       }
       // Ignore page-break type
     });
     return { flatSentences: sentences, mediaMap: map };
-  }, []); // Rerun if mockContent changes
+  }, [mockContent]);
 
   const handleNext = () => {
     // Reset pulse effect when user clicks Next (Continue)
@@ -237,7 +219,16 @@ function App() {
     return currentItemIndex;
  };
 
+  if (!isCourseStarted) {
+    return (
+      <Homepage
+        onStartCourse={handleStartCourse}
+        onStartTheaterMode={handleStartTheaterMode}
+      />
+    );
+  }
 
+  // Render the original course content
   return (
     // Use brand-gray-light and ensure min-height for footer stickiness
     <div className="flex flex-col min-h-screen bg-brand-gray-light font-sans">
@@ -247,9 +238,23 @@ function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center w-full">
            {/* Title styling - slightly larger */}
            {/* Dynamically set header title based on current page? */}
-           <h1 className="text-2xl font-bold text-brand-gray-darker">
-             {`Page ${currentPage + 1}: ${pageTitles[currentPage] || 'AI là gì?'}`}
-           </h1>
+           <div className="flex items-center text-base text-brand-gray-dark">
+             <a 
+               href="#" 
+               onClick={(e) => {
+                 e.preventDefault();
+                 setIsCourseStarted(false);
+               }}
+               className="hover:text-brand-green-dark transition-colors flex items-center"
+             >
+               <i className="fas fa-graduation-cap"></i>
+               <span className="ml-1 hidden sm:inline">AI Course</span> {/* Hide text on mobile */}
+             </a>
+             <i className="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+             {pageTitles?.[currentPage] && (
+               <span className="text-brand-gray">{pageTitles[currentPage]}</span>
+             )}
+           </div>
           {/* Presentation Mode Button: Match green button style from design */}
           <button
             onClick={() => {
@@ -278,14 +283,14 @@ function App() {
       <main className="flex-1 overflow-y-auto p-0 sm:px-6 lg:px-8 sm:py-8 bg-course-gradient">
         {/* Content card: white bg, rounded-xl, larger shadow, more padding */}
         <div className="bg-white md:mx-auto p-3 pt-5 sm:p-8 md:p-10 rounded-xl shadow-lg lg:max-w-4xl w-full">
-          {pages[currentPage]?.map((item, idx) => { // Add optional chaining for safety
+          {pages?.[currentPage]?.map((item, idx) => { // Add optional chaining for safety
             switch (item.type) {
               case 'paragraph':
                 // Check for the 'info' style
                 if (item.style === 'info') {
                   return (
                     <p key={idx} className="mt-4 text-sm text-gray-500 italic"> {/* Adjusted styling */}
-                      👉 {item.value.join(' ')} {/* Added emoji */}
+                      {item.value.join(' ')} 
                     </p>
                   );
                 }
@@ -383,7 +388,7 @@ function App() {
                       title={item.title}
                       instruction={item.instruction}
                       onCorrect={setDragDropGameCorrect}
-                      mode="reading"
+                      mode={presentationMode ? 'presentation' : 'reading'}
                       items={item.items || []}
                       categories={item.categories || []}
                       correctPairs={item.correctPairs || {}}
@@ -420,7 +425,7 @@ function App() {
                       title={item.title}
                       questions={item.questions}
                       onCorrect={setQuizCorrect}
-                      mode="reading"
+                      mode={presentationMode ? 'presentation' : 'reading'}
                     />
                   </div>
                 </div>
