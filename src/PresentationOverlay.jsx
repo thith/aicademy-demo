@@ -165,7 +165,7 @@ function PresentationOverlay({
         if (type === 'image') {
           setStatusMessage('Viewing image...');
           shouldStartDelay = true;
-          delayDuration = 5; // seconds
+          delayDuration = currentMedia.delay ?? 8; // seconds, default 8
         } else if (type === 'minigame') {
           // Check if it's a drag-drop game or catch-origin game
           const isDragDropGame = currentMedia.element && currentMedia.element.type === DragDropGame;
@@ -321,12 +321,14 @@ function PresentationOverlay({
        const isDragDropGame = currentMediaData.element && currentMediaData.element.type === DragDropGame;
        const isQuiz = currentMediaData.type === 'quiz';
        
+       const elementType = currentMediaData.element?.type;
+       const extraProps = { mode: 'presentation' };
+       if (elementType === DragDropGame || elementType?.name === 'Quiz') {
+         extraProps.externalTriggerCheck = triggerGameCheck;
+       }
        currentDisplayElement = React.cloneElement(
-         currentMediaData.element, 
-         { 
-           mode: 'presentation',
-           externalTriggerCheck: triggerGameCheck
-         }
+         currentMediaData.element,
+         extraProps
        );
     }
   }
@@ -350,7 +352,7 @@ function PresentationOverlay({
   // Use the shouldPulse prop passed from App
 
   return (
-    <div className="fixed inset-0 bg-brand-gray-darker text-gray-100 flex flex-col items-center justify-center z-50 p-0 sm:p-4 overflow-hidden presentation">
+    <div className="fixed inset-0 bg-brand-gray-darker text-gray-100 flex flex-col items-center justify-center z-50 p-0 sm:p-4 overflow-y-auto presentation">
       {/* Countdown Overlay */}
       {countdown !== null && (
         <div className="absolute inset-0 flex items-center justify-center z-20 bg-black bg-opacity-50">
@@ -359,7 +361,7 @@ function PresentationOverlay({
       )}
 
       {/* Main Content Area - Restore max-width */}
-      <div className="flex-1 flex items-center justify-center w-full max-w-5xl text-center p-1 sm:p-6">
+      <div className="flex-1 flex items-center justify-center w-full max-w-5xl text-center p-1 sm:p-6 pb-20">
         {currentDisplayElement ? (
           // Render media element wrapper - Apply padding conditionally
            <div className={`w-full ${currentMediaData?.type !== 'video' ? 'p-0 sm:p-4 bg-gray-800 rounded-lg' : ''}`}>

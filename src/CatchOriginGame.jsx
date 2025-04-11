@@ -366,8 +366,8 @@ export default function CatchOriginGame({
       {/* Game info and score counter - styled for better mobile display */}
       <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:justify-between items-center text-xs">
         <div className="bg-gray-100 rounded-lg p-2 text-gray-600">
-          <span className="hidden sm:inline">👉 Hãy dùng phím mũi tên trên bàn phím để di chuyển giỏ ổn định hơn</span>
-          <span className="sm:hidden">👉 Vuốt màn hình để di chuyển giỏ bắt các công ty AI</span>
+          <span className="hidden sm:inline">👉 Dùng phím mũi tên trên bàn phím để di chuyển giỏ ổn định hơn</span>
+          <span className="sm:hidden">👉 Tap vào điểm trên màn hình để gióng giỏ USA vào đó.</span>
         </div>
         
         {/* Improved counter with two sections */}

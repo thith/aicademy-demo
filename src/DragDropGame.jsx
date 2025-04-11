@@ -272,7 +272,7 @@ export default function DragDropGame({
             }`}
           >
             {isCorrect
-              ? '✅ Tuyệt vời! Hãy ấn Continue để đi tiếp.'
+              ? (mode === 'reading' ? '✅ Tuyệt vời! Hãy ấn Next để đi tiếp.' : '✅ Tuyệt vời! Hãy ấn Continue để đi tiếp.')
               : '❌ Chưa đúng, hãy thử lại.'}
           </span>
         )}

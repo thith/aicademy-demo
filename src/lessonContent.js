@@ -69,7 +69,8 @@ const lessonContent = [
   {
     type: 'image',
     src: '/map.png',
-    alt: 'AI Centers of the World'
+    alt: 'AI Centers of the World',
+    delay: 8
   },
   {
     type: 'highlight',
