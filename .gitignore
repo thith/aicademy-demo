@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+venv
+.python-version
+check_words.cjs
+infer_timestamps.cjs
+lessonContent_en.txt
+lessonContent_vi.txt
+p1_chars.json
+p1.json
+p1.txt
+to_chars.cjs

@@ -1,10 +1,96 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DragDropGame from './DragDropGame';
 import CatchOriginGame from './CatchOriginGame';
-import { getPresentationSpeed } from './config.js';
+import { getPresentationSpeed, getLessonContent } from './config.js'; // Import getLessonContent
+
+// Helper to find the block index, paragraph index, and sentence index within that block
+const findBlockAndSentenceIndex = (globalSentenceIndex, lessonContent) => {
+  let sentenceCounter = 0; // Tracks the global sentence index across all content
+  let currentBlockIndex = -1;
+  let paragraphIndexInBlock = -1; // Index of the paragraph within the voiced-text block
+  let sentenceIndexInParagraph = -1; // Index of the sentence within the paragraph
+  let blockData = null;
+  let isVoicedBlock = false;
+  let voicedBlockSentencesData = []; // Store detailed info ONLY for the target voiced block
+
+  for (let i = 0; i < lessonContent.length; i++) {
+    const item = lessonContent[i];
+    currentBlockIndex = i;
+    isVoicedBlock = item.type === 'voiced-text';
+
+    if (item.type === 'paragraph' || item.type === 'highlight') {
+      // Handle highlight title as a separate sentence
+      if (item.title && item.type === 'highlight') {
+        if (sentenceCounter === globalSentenceIndex) {
+           return { blockIndex: i, paragraphIndexInBlock: -1, sentenceIndexInParagraph: -1, blockData: item, isVoicedBlock: false, voicedBlockSentencesData: [] };
+        }
+        sentenceCounter++;
+      }
+      // Store result to return after processing all sentences
+      let result = null;
+      
+      item.value.forEach(line => {
+        const lineSentences = line.match(/[^.!?]+[.!?]+[\])'"`'"]*|.+/g) || [line];
+        lineSentences.forEach(sentenceText => {
+          if (sentenceText.trim()) {
+            if (sentenceCounter === globalSentenceIndex) {
+              result = { blockIndex: i, paragraphIndexInBlock: -1, sentenceIndexInParagraph: -1, blockData: item, isVoicedBlock: false, voicedBlockSentencesData: [] };
+            }
+            sentenceCounter++;
+          }
+        });
+      });
+      
+      // Return result if found in this paragraph
+      if (result) {
+        return result;
+      }
+    } else if (isVoicedBlock) {
+      let tempVoicedSentencesData = []; // Temp storage for this block's data
+      let foundInBlock = false; // Flag if the target index is within this block
+
+      for (let pIdx = 0; pIdx < item.paragraphs.length; pIdx++) {
+        const paragraph = item.paragraphs[pIdx];
+        for (let sIdx = 0; sIdx < paragraph.sentences.length; sIdx++) {
+          const sentenceData = paragraph.sentences[sIdx];
+          if (sentenceData.text.trim()) {
+            tempVoicedSentencesData.push({
+                text: sentenceData.text,
+                timings: sentenceData.char_timings,
+                globalSentenceStartIndex: sentenceCounter,
+                paragraphIndex: pIdx,
+                sentenceIndex: sIdx,
+            });
+            if (sentenceCounter === globalSentenceIndex) {
+              paragraphIndexInBlock = pIdx;
+              sentenceIndexInParagraph = sIdx;
+              blockData = item;
+              voicedBlockSentencesData = tempVoicedSentencesData; // Assign collected data
+              foundInBlock = true;
+              // Don't return yet, finish collecting data for the whole block
+            }
+            sentenceCounter++;
+          }
+        }
+      }
+      // If found in this block, return now after collecting all its sentence data
+      if (foundInBlock) {
+          return { blockIndex: i, paragraphIndexInBlock, sentenceIndexInParagraph, blockData, isVoicedBlock: true, voicedBlockSentencesData };
+      }
+
+    } else if (item.type !== 'page-break') { // Other non-text blocks
+      if (sentenceCounter === globalSentenceIndex) {
+         return { blockIndex: i, paragraphIndexInBlock: -1, sentenceIndexInParagraph: -1, blockData: item, isVoicedBlock: false, voicedBlockSentencesData: [] };
+      }
+      sentenceCounter++;
+    }
+  }
+  return { blockIndex: -1, paragraphIndexInBlock: -1, sentenceIndexInParagraph: -1, blockData: null, isVoicedBlock: false, voicedBlockSentencesData: [] }; // Not found
+};
+
 
 function PresentationOverlay({
-  sentences = [],
+  sentences = [], // Flat array of all sentence strings
   isVisible,
   shouldPulse = false,
   pulseKey = 0,
@@ -16,21 +102,15 @@ function PresentationOverlay({
   catchOriginGameCorrect,
   quizCorrect,
   initialSentenceIndex = 0,
-  mode = 'reading', // Add mode prop
-  onRestart = null, // Add onRestart callback
+  mode = 'reading',
+  onRestart = null,
 }) {
   const [localPulse, setLocalPulse] = useState(false);
-
-  useEffect(() => {
-    if (shouldPulse) {
-      setLocalPulse(true);
-    }
-  }, [shouldPulse, pulseKey]);
-
-  // Combined game correct state for backward compatibility
-  const gameCorrect = dragDropGameCorrect || catchOriginGameCorrect;
-  const [sentenceIndex, setSentenceIndex] = useState(0);
+  const [currentGlobalSentenceIndex, setCurrentGlobalSentenceIndex] = useState(initialSentenceIndex);
+  const [currentSentenceText, setCurrentSentenceText] = useState('');
+  const [highlightedCharIndex, setHighlightedCharIndex] = useState(-1);
   const [charIndex, setCharIndex] = useState(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(null);
@@ -38,596 +118,591 @@ function PresentationOverlay({
   const [mediaDelayRemaining, setMediaDelayRemaining] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [showStatusToast, setShowStatusToast] = useState(false);
-  const [triggerGameCheck, setTriggerGameCheck] = useState(false);
-  const [videoKey, setVideoKey] = useState(Date.now()); // Key to force iframe re-render
+  const [videoKey, setVideoKey] = useState(Date.now());
+  const [isMuted, setIsMuted] = useState(false); // Mute state
 
   const intervalRef = useRef(null);
   const mediaDelayTimerRef = useRef(null);
   const mediaDelayCountdownRef = useRef(null);
+  const audioRef = useRef(null);
+  const highlightTimersRef = useRef([]);
   const countdownTimersRef = useRef([]);
+  const currentVoicedBlockInfo = useRef(null);
+  const lessonContent = useRef(getLessonContent());
 
-  const sentence = sentences[sentenceIndex] || '';
-  // Calculate total steps (sentences + media items) for progress
-  const totalSteps = sentences.length;
+  // --- Determine current item type & data ---
+  const { blockIndex, paragraphIndexInBlock, sentenceIndexInParagraph, blockData, isVoicedBlock, voicedBlockSentencesData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, lessonContent.current);
+  
+  // Consider both paragraph and highlight as regular text
+  const isRegularText = !isVoicedBlock && !mediaMap[currentGlobalSentenceIndex] && (blockData?.type === 'paragraph' || blockData?.type === 'highlight');
 
-  // Separate clear functions to avoid clearing the wrong timers
-  const clearAnimationTimer = () => {
-    clearInterval(intervalRef.current);
-    intervalRef.current = null;
-  };
-
-  const clearMediaTimers = () => {
-    clearTimeout(mediaDelayTimerRef.current);
-    clearInterval(mediaDelayCountdownRef.current);
-    mediaDelayTimerRef.current = null;
-    mediaDelayCountdownRef.current = null;
-  };
-
-  const clearCountdownTimers = () => {
-    countdownTimersRef.current.forEach(timer => clearTimeout(timer));
-    countdownTimersRef.current = [];
-  };
-
-  // Simplified countdown logic and state reset
+  // --- Update displayed sentence text ---
   useEffect(() => {
-    // Reset state when visibility changes or initial index changes
-    setSentenceIndex(initialSentenceIndex);
+    if (isVoicedBlock && blockData?.paragraphs && paragraphIndexInBlock >= 0 && sentenceIndexInParagraph >= 0) {
+       setCurrentSentenceText(blockData.paragraphs[paragraphIndexInBlock]?.sentences[sentenceIndexInParagraph]?.text || '');
+    } else if (isRegularText) {
+      setCurrentSentenceText(sentences[currentGlobalSentenceIndex] || '');
+    } else {
+       setCurrentSentenceText('');
+    }
+    setHighlightedCharIndex(-1);
     setCharIndex(0);
-    // Calculate initial progress based on starting sentence index (now counts all steps)
-    setProgress(totalSteps > 0 ? ((initialSentenceIndex + 1) / totalSteps) * 100 : 0);
-    setIsPlaying(false); // Always start paused
-    setMediaDelayRemaining(null);
-    setCountdown(null); // Ensure countdown is reset
-    setVideoKey(Date.now()); // Force video remount/stop when visibility changes
+  }, [currentGlobalSentenceIndex, blockData, paragraphIndexInBlock, sentenceIndexInParagraph, isRegularText, sentences, isVoicedBlock]);
 
-    // Clear all timers when becoming invisible or when resetting
+
+  // --- Cleanup Functions ---
+  const clearAnimationTimer = () => { clearInterval(intervalRef.current); intervalRef.current = null; };
+  const clearMediaTimers = () => { clearTimeout(mediaDelayTimerRef.current); clearInterval(mediaDelayCountdownRef.current); mediaDelayTimerRef.current = null; mediaDelayCountdownRef.current = null; };
+  const clearHighlightTimers = useCallback(() => { highlightTimersRef.current.forEach(clearTimeout); highlightTimersRef.current = []; }, []);
+  const clearCountdownTimers = () => { countdownTimersRef.current.forEach(clearTimeout); countdownTimersRef.current = []; };
+  const stopAndCleanupAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      // Remove listeners safely
+      const currentAudio = audioRef.current;
+      // Assuming handlers are stable or defined outside, otherwise this might not work reliably
+      // currentAudio.removeEventListener('canplay', handleAudioReady);
+      // currentAudio.removeEventListener('error', handleError);
+      currentAudio.removeAttribute('src');
+      currentAudio.load();
+      audioRef.current = null;
+    }
+    clearHighlightTimers();
+    setHighlightedCharIndex(-1);
+    currentVoicedBlockInfo.current = null;
+  }, [clearHighlightTimers]);
+
+  // --- Core Logic Hooks ---
+
+  // Initial Countdown & State Reset
+  useEffect(() => {
+    setCurrentGlobalSentenceIndex(initialSentenceIndex);
+    setProgress(sentences.length > 0 ? ((initialSentenceIndex + 1) / sentences.length) * 100 : 0);
+    setIsPlaying(false);
+    setMediaDelayRemaining(null);
+    setCountdown(null);
+    setVideoKey(Date.now());
+    stopAndCleanupAudio();
     clearAnimationTimer();
     clearMediaTimers();
     clearCountdownTimers();
 
     if (isVisible) {
-      // Start countdown only if becoming visible
       setCountdown(3);
-
-      const timer1 = setTimeout(() => {
-        setCountdown(2);
-
-        const timer2 = setTimeout(() => {
-          setCountdown(1);
-
-          const timer3 = setTimeout(() => {
-            setCountdown(null);
-            setIsPlaying(true); // Start playing after countdown
-          }, 1000);
-
-          countdownTimersRef.current.push(timer3);
-        }, 1000);
-
-        countdownTimersRef.current.push(timer2);
-      }, 1000);
-
-      countdownTimersRef.current.push(timer1);
+      const timer1 = setTimeout(() => setCountdown(2), 1000);
+      const timer2 = setTimeout(() => setCountdown(1), 2000);
+      const timer3 = setTimeout(() => { setCountdown(null); setIsPlaying(true); }, 3000);
+      countdownTimersRef.current = [timer1, timer2, timer3];
     }
 
-    // Cleanup function to clear all timers on unmount or when visibility/index changes
-    return () => {
+    return () => { clearAnimationTimer(); clearMediaTimers(); clearCountdownTimers(); stopAndCleanupAudio(); };
+  }, [isVisible, initialSentenceIndex, sentences.length, stopAndCleanupAudio]);
+
+  // Advance Function
+  const advance = useCallback((forceGlobalIndex = null) => {
       clearAnimationTimer();
       clearMediaTimers();
-      clearCountdownTimers();
-    };
-  }, [isVisible, initialSentenceIndex, totalSteps]); // Added totalSteps dependency
 
-  // Sentence animation logic
-  useEffect(() => {
-    clearAnimationTimer(); // Clear previous animation timer
+      let nextIndex;
+      let isForcedAdvance = forceGlobalIndex !== null;
 
-    // Check if it's a text sentence (not in mediaMap) and should be animating
-    if (isPlaying && countdown === null && sentenceIndex < sentences.length && !mediaMap[sentenceIndex] && mediaDelayRemaining === null) {
-      const currentSentenceText = sentences[sentenceIndex] || '';
-
-      // Update progress based on steps (sentences/media items)
-      setProgress(totalSteps > 0 ? ((sentenceIndex + 1) / totalSteps) * 100 : 0);
-
-      if (charIndex < currentSentenceText.length) {
-        // If sentence not fully displayed, continue typing animation
-        intervalRef.current = setInterval(() => {
-          setCharIndex(prev => prev + 1);
-        }, getPresentationSpeed()[currentSpeed]);
+      if (isForcedAdvance) {
+          nextIndex = forceGlobalIndex;
+          stopAndCleanupAudio();
       } else {
-        // If sentence finished, but paused before advance() scheduled, call advance immediately
-        advance();
+          const { blockIndex: currentBlockIdx } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, lessonContent.current);
+          const { blockIndex: nextBlockIndex, blockData: nextBlockData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex + 1, lessonContent.current);
+          const leavingVoicedBlock = isVoicedBlock && (!nextBlockData || nextBlockData.type !== 'voiced-text' || nextBlockIndex !== currentBlockIdx);
+
+          if (leavingVoicedBlock) {
+              stopAndCleanupAudio();
+          } else {
+              clearHighlightTimers();
+          }
+          nextIndex = currentGlobalSentenceIndex + 1;
+      }
+
+      setMediaDelayRemaining(null);
+
+      if (nextIndex >= sentences.length) {
+          setIsPlaying(false); setProgress(100); onFinished?.();
+      } else {
+          setCurrentGlobalSentenceIndex(nextIndex);
+          setProgress(sentences.length > 0 ? ((nextIndex + 1) / sentences.length) * 100 : 0);
+          
+          // Check if the next item is a paragraph or highlight (regular text)
+          const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, lessonContent.current);
+          const isNextRegularText = nextItemData && (nextItemData.type === 'paragraph' || nextItemData.type === 'highlight');
+          
+          // Always auto-play regular text content
+          if (isNextRegularText) {
+              console.log('Next content is regular text, auto-playing');
+              setIsPlaying(true);
+          } else {
+              // For other content types, follow the original logic
+              const shouldAutoPlayNext = nextItemData && nextItemData.type !== 'game' && nextItemData.type !== 'quiz';
+              setIsPlaying(shouldAutoPlayNext);
+          }
+      }
+  }, [currentGlobalSentenceIndex, sentences.length, onFinished, stopAndCleanupAudio, isVoicedBlock, clearHighlightTimers]);
+
+
+  // Regular Text Animation
+  useEffect(() => {
+    clearAnimationTimer();
+    if (isPlaying && countdown === null && isRegularText && mediaDelayRemaining === null) {
+      if (charIndex < currentSentenceText.length) {
+        intervalRef.current = setInterval(() => setCharIndex(prev => prev + 1), getPresentationSpeed()[currentSpeed]);
+      } else {
+        const timer = setTimeout(advance, 500); return () => clearTimeout(timer);
       }
     }
-
-    // Cleanup function for the animation timer
     return clearAnimationTimer;
-  }, [sentenceIndex, charIndex, isPlaying, countdown, currentSpeed, sentences, mediaMap, mediaDelayRemaining, totalSteps]); // Added totalSteps
+  }, [charIndex, isPlaying, countdown, currentSpeed, currentSentenceText.length, isRegularText, mediaDelayRemaining, advance]);
 
-  // Media display and delay logic
+  // Non-Voiced Media Delay / Game/Quiz Pause
   useEffect(() => {
-    clearMediaTimers(); // Clear previous media timers
+    clearMediaTimers();
+    const mediaData = mediaMap[currentGlobalSentenceIndex];
+    if (isPlaying && countdown === null && mediaData && !isVoicedBlock && mediaDelayRemaining === null) {
+      const type = mediaData.type;
+      let shouldPause = false, shouldStartDelayTimer = false, delayDuration = 0;
+      setProgress(sentences.length > 0 ? ((currentGlobalSentenceIndex + 1) / sentences.length) * 100 : 0);
 
-    // Check if it's a media item and should be displayed/delayed
-    if (isPlaying && countdown === null && mediaMap[sentenceIndex] && mediaDelayRemaining === null) {
-      const currentMedia = mediaMap[sentenceIndex];
-      const type = currentMedia.type;
-      let shouldStartDelay = false;
-      let delayDuration = 0; // Default delay
-
-      // Update progress immediately when showing media
-      const stepsCompleted = sentenceIndex + 1; // Count current media item as completed step
-      setProgress(totalSteps > 0 ? (stepsCompleted / totalSteps) * 100 : 0);
-
-      // Set appropriate status messages based on media type
-      if (type === 'image') {
-        setStatusMessage('Viewing image...');
-        shouldStartDelay = true;
-        delayDuration = currentMedia.delay ?? 8; // seconds, default 8
-      } else if (type === 'game') { // Changed from 'minigame' to 'game'
-        // Check if it's a drag-drop game or catch-origin game
-        const isDragDropGame = currentMedia.element && currentMedia.element.type === DragDropGame;
-        const isCatchOriginGame = currentMedia.element && currentMedia.element.type === CatchOriginGame;
-        
-        // Default message
-        setStatusMessage('Complete the game to continue');
-        
-        // For games, always pause when we reach them
-        setIsPlaying(false);
-        
-        const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
-        if (isGameDone) {
-          // Don't auto-advance, let the user click the Continue button
-          setLocalPulse(true); // Make the Continue button pulse
-          return; // skip delay and toast
-        } else {
-          // If game not correct, pause indefinitely until user interacts or exits
-          setStatusMessage('❌ Game not correct yet, please try again.');
-        }
-      } else if (type === 'quiz') {
-        // For quizzes, always pause when we reach them
-        setIsPlaying(false);
-        
-        // Only delay if the quiz is already marked correct
-        if (quizCorrect) {
-          // Don't auto-advance, let the user click the Continue button
-          setLocalPulse(true); // Make the Continue button pulse
-          return; // skip delay and toast
-        } else {
-          // If quiz not correct, pause indefinitely
-          setStatusMessage('Answer correctly to continue');
-        }
-      } else if (type === 'video') {
-        setStatusMessage('Playing video...');
-        shouldStartDelay = true;
-        delayDuration = 15; // Adjust delay for video viewing time
+      if (type === 'image') { setStatusMessage('Viewing image...'); shouldStartDelayTimer = true; delayDuration = mediaData.delay ?? 8; }
+      else if (type === 'video') { setStatusMessage('Playing video...'); shouldStartDelayTimer = true; delayDuration = 15; }
+      else if (type === 'game' || type === 'quiz') {
+        shouldPause = true;
+        const isGame = type === 'game';
+        const isCorrect = isGame ? (mediaData.gameType === 'drag-drop' && dragDropGameCorrect) || (mediaData.gameType === 'catch-origin' && catchOriginGameCorrect) : quizCorrect;
+        if (isCorrect) { setLocalPulse(true); setStatusMessage(isGame ? '✓ Game completed!' : '✓ Quiz completed!'); }
+        else { setStatusMessage(isGame ? 'Complete the game to continue' : 'Answer correctly to continue'); }
       }
-      // Removed highlight type check - it's treated as text now
 
-      // Start the delay timer if applicable
-      if (shouldStartDelay && delayDuration > 0) {
+      if (shouldPause) setIsPlaying(false);
+      else if (shouldStartDelayTimer && delayDuration > 0) {
         setMediaDelayRemaining(delayDuration);
-
-        // Countdown timer for the UI
-        mediaDelayCountdownRef.current = setInterval(() => {
-          setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
-        }, 1000);
-
-        // Timer to advance after the delay
+        mediaDelayCountdownRef.current = setInterval(() => setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null), 1000);
         mediaDelayTimerRef.current = setTimeout(advance, delayDuration * 1000);
       }
     }
-
-    // Cleanup function for media timers
     return clearMediaTimers;
-  }, [isPlaying, countdown, mediaMap, sentenceIndex, dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, totalSteps]); // Dependencies updated
+  }, [isPlaying, countdown, currentGlobalSentenceIndex, mediaMap, isVoicedBlock, dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, sentences.length, advance]);
 
-  // Effect to handle game/quiz completion and pulse the Continue button
+  // Game/Quiz Completion Pulse
   useEffect(() => {
-    const currentMedia = mediaMap[sentenceIndex];
-    if (currentMedia) { // Check if on a media slide
-      const isDragDropGame = currentMedia.element?.type === DragDropGame;
-      const isCatchOriginGame = currentMedia.element?.type === CatchOriginGame;
-      const isQuiz = currentMedia.type === 'quiz';
-      
-      // If game or quiz is completed, pulse the Continue button
-      if ((isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect) || (isQuiz && quizCorrect)) {
-        setLocalPulse(true); // Make the Continue button pulse
-        setIsPlaying(false); // Ensure we're paused
+    const mediaData = mediaMap[currentGlobalSentenceIndex];
+    if (mediaData) {
+      const isGame = mediaData.type === 'game'; const isQuiz = mediaData.type === 'quiz';
+      const isCorrect = isGame ? (mediaData.gameType === 'drag-drop' && dragDropGameCorrect) || (mediaData.gameType === 'catch-origin' && catchOriginGameCorrect) : (isQuiz && quizCorrect);
+      if (isCorrect) { 
+        setLocalPulse(true); 
+        setIsPlaying(false); 
+      } else {
+        setLocalPulse(false);
       }
     }
-  }, [dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, sentenceIndex, mediaMap]);
+  }, [dragDropGameCorrect, catchOriginGameCorrect, quizCorrect, currentGlobalSentenceIndex, mediaMap]);
 
-  // Function to advance to the next sentence/media item
-  const advance = () => {
-    clearAnimationTimer();
-    clearMediaTimers();
-    setMediaDelayRemaining(null); // Clear remaining delay display
+  // --- Voiced Text Logic ---
+  const scheduleVoicedTextTimers = useCallback((startTime = 0) => {
+    if (!currentVoicedBlockInfo.current || !audioRef.current) return;
+    console.log(`Scheduling timers from audio time: ${startTime}`);
 
-    if (sentenceIndex >= sentences.length - 1) {
-      // Reached the end
-      setIsPlaying(false);
-      setProgress(100); // Ensure progress bar is full
-      onFinished?.(); // Optional callback when finished
-    } else {
-      // Move to the next index
-      const nextIndex = sentenceIndex + 1;
-      setSentenceIndex(nextIndex);
-      setCharIndex(0); // Reset character index for the next sentence/media placeholder
-      setIsPlaying(true); // Ensure playing continues
-      // Update progress immediately for the next step
-      setProgress(totalSteps > 0 ? ((nextIndex + 1) / totalSteps) * 100 : 0);
+    clearHighlightTimers();
+    const { sentencesData, blockTotalSentences, blockGlobalStartIndex } = currentVoicedBlockInfo.current;
+    const audioCurrentTime = startTime;
+
+    for (let dataIdx = 0; dataIdx < sentencesData.length; dataIdx++) {
+        const sentenceData = sentencesData[dataIdx];
+        const sentenceText = sentenceData.text;
+        const timings = sentenceData.timings;
+        const sentenceGlobalIndex = sentenceData.globalSentenceStartIndex;
+        const isLastSentenceInBlock = (dataIdx === sentencesData.length - 1);
+
+        if (!timings || timings.length === 0) { console.warn(`Sentence globalIdx ${sentenceGlobalIndex} has no timings.`); continue; }
+
+        let sentenceTimingIndex = 0;
+        for (let charIdx = 0; charIdx < sentenceText.length; charIdx++) {
+            const char = sentenceText[charIdx];
+            if (/\s/.test(char)) continue;
+
+            if (sentenceTimingIndex < timings.length) {
+                const absoluteTimestamp = timings[sentenceTimingIndex];
+                const isLastCharOfSentence = (sentenceTimingIndex === timings.length - 1);
+                const isLastCharOfBlock = isLastSentenceInBlock && isLastCharOfSentence;
+
+                if (absoluteTimestamp >= audioCurrentTime) {
+                    const delay = Math.max(0, (absoluteTimestamp - audioCurrentTime) * 1000);
+                    const timerId = setTimeout(() => {
+                        if (audioRef.current && !audioRef.current.paused) {
+                            // Use functional update for setCurrentGlobalSentenceIndex
+                            setCurrentGlobalSentenceIndex(prevGlobalIndex => {
+                                if (prevGlobalIndex !== sentenceGlobalIndex) {
+                                    // Schedule highlight update after state change
+                                    setTimeout(() => setHighlightedCharIndex(charIdx), 0);
+                                    return sentenceGlobalIndex; // Update global index
+                                } else {
+                                    setHighlightedCharIndex(charIdx); // Already correct sentence, just highlight
+                                    return prevGlobalIndex; // Keep same global index
+                                }
+                            });
+
+                            if (isLastCharOfBlock) {
+                                console.log("VOICED BLOCK: Last char timer fired, advancing.");
+                                setTimeout(() => {
+                                     const nextGlobalIndex = blockGlobalStartIndex + blockTotalSentences;
+                                     advance(nextGlobalIndex);
+                                }, 50);
+                            }
+                        }
+                    }, delay);
+                    highlightTimersRef.current.push(timerId);
+                }
+                sentenceTimingIndex++;
+            } else { console.warn(`Timing mismatch sentence globalIdx ${sentenceGlobalIndex}, char ${charIdx}`); break; }
+        }
+        if (sentenceTimingIndex < sentenceText.replace(/\s/g, '').length) { console.warn(`Not enough timings sentence globalIdx ${sentenceGlobalIndex}`); }
     }
-  };
+  }, [clearHighlightTimers, advance]); // Removed currentGlobalSentenceIndex dependency
 
-  // Function to skip the current media delay
-  const skipDelay = () => {
-    advance(); // Immediately advance to the next item
-  };
+  // Effect to Preload/Load Audio and Schedule Timers ONCE per voiced block
+  useEffect(() => {
+    // Preload/Prepare audio as soon as a voiced block is visible
+    if (isVisible && isVoicedBlock && blockData && !audioRef.current) {
+        if (!currentVoicedBlockInfo.current || currentVoicedBlockInfo.current.src !== blockData.src) {
+            const blockStartIndex = voicedBlockSentencesData[0]?.globalSentenceStartIndex ?? 0;
+            currentVoicedBlockInfo.current = {
+                src: blockData.src, sentencesData: voicedBlockSentencesData,
+                blockGlobalStartIndex: blockStartIndex,
+                blockTotalSentences: voicedBlockSentencesData.length
+            };
+            console.log("VOICED BLOCK: Preparing info for", currentVoicedBlockInfo.current.src);
+        }
 
-  // Function to fully reset presentation state
-  const resetPresentation = () => {
-    clearAnimationTimer();
-    clearMediaTimers();
-    clearCountdownTimers();
+        console.log("VOICED BLOCK: Preloading audio", currentVoicedBlockInfo.current.src);
+        audioRef.current = new Audio(currentVoicedBlockInfo.current.src);
+        audioRef.current.muted = isMuted;
+        audioRef.current.preload = 'auto';
 
-    setSentenceIndex(0);
-    setCharIndex(0);
-    setProgress(0);
-    setMediaDelayRemaining(null);
-    setCountdown(null);
-    setVideoKey(Date.now());
-    setIsPlaying(true);
-  };
+        const handleAudioReady = () => {
+            // Only schedule and play if the presentation is actually playing (after countdown)
+            if (audioRef.current && isPlaying && countdown === null) {
+                console.log("VOICED BLOCK: Audio ready, scheduling timers from", audioRef.current.currentTime);
+                scheduleVoicedTextTimers(audioRef.current.currentTime);
+                audioRef.current.play().catch(e => console.error("Audio play failed on ready:", e));
+            }
+        };
 
-  // Function to toggle play/pause state
-  const togglePlayPause = () => {
-    if (countdown !== null) return; // Don't allow play/pause during countdown
+        const handleError = (e) => { console.error("Audio error:", e); stopAndCleanupAudio(); };
+
+        audioRef.current.addEventListener('canplay', handleAudioReady);
+        audioRef.current.addEventListener('error', handleError);
+        audioRef.current.load(); // Start loading
+
+        return () => { // Cleanup listeners
+            if (audioRef.current) {
+                audioRef.current.removeEventListener('canplay', handleAudioReady);
+                audioRef.current.removeEventListener('error', handleError);
+            }
+        };
+    // Play/Schedule timers only when isPlaying becomes true *after* countdown
+    } else if (isVisible && isPlaying && countdown === null && isVoicedBlock && audioRef.current && audioRef.current.paused) {
+         // If audio was preloaded but not played (e.g., countdown finished), play now
+         console.log("VOICED BLOCK: Playing preloaded audio and scheduling timers from", audioRef.current.currentTime);
+         scheduleVoicedTextTimers(audioRef.current.currentTime);
+         audioRef.current.play().catch(e => console.error("Audio play failed on delayed start:", e));
+    } else if (!isVoicedBlock && audioRef.current) {
+        stopAndCleanupAudio(); // Cleanup if moved out of voiced block
+    }
+
+  }, [isVisible, isPlaying, countdown, isVoicedBlock, blockData, voicedBlockSentencesData, stopAndCleanupAudio, scheduleVoicedTextTimers, isMuted]); // Refined dependencies
+
+
+  // --- Skip & Reset ---
+  const skipDelay = () => advance();
+  const resetPresentation = useCallback(() => {
+    clearAnimationTimer(); clearMediaTimers(); clearCountdownTimers(); stopAndCleanupAudio();
+    setCurrentGlobalSentenceIndex(0); setProgress(0); setMediaDelayRemaining(null); setCountdown(null); setVideoKey(Date.now());
+    setTimeout(() => {
+        if (isVisible) {
+             setCountdown(3);
+             const t1 = setTimeout(() => setCountdown(2), 1000), t2 = setTimeout(() => setCountdown(1), 2000), t3 = setTimeout(() => { setCountdown(null); setIsPlaying(true); }, 3000);
+             countdownTimersRef.current = [t1, t2, t3];
+        }
+    }, 10);
+  }, [stopAndCleanupAudio, isVisible]);
+
+  // --- Play/Pause ---
+  const togglePlayPause = useCallback(() => {
+    if (countdown !== null) return;
+    if (isVoicedBlock && !audioRef.current) { 
+      console.log("TogglePlayPause: Audio ref missing."); 
+      return; 
+    }
 
     const currentlyPlaying = !isPlaying;
     setIsPlaying(currentlyPlaying);
 
-    if (currentlyPlaying) {
-      // If resuming and was paused during a media delay, restart the delay timer
-      if (mediaDelayRemaining !== null) {
-        mediaDelayCountdownRef.current = setInterval(() => {
-          setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null);
-        }, 1000);
+    if (currentlyPlaying) { // --- Resuming ---
+      if (audioRef.current && isVoicedBlock) {
+        audioRef.current.play().catch(e => console.error("Audio resume failed:", e));
+        setTimeout(() => {
+          if (audioRef.current) {
+            console.log("VOICED BLOCK: Resuming, scheduling timers from", audioRef.current.currentTime);
+            scheduleVoicedTextTimers(audioRef.current.currentTime);
+          }
+        }, 50);
+      } else if (mediaDelayRemaining !== null && !isVoicedBlock) {
+        mediaDelayCountdownRef.current = setInterval(() => setMediaDelayRemaining(prev => (prev !== null && prev > 1) ? prev - 1 : null), 1000);
         mediaDelayTimerRef.current = setTimeout(advance, mediaDelayRemaining * 1000);
       }
-      // If resuming at the very end, restart from beginning with full reset
-      else if (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)) {
-        if (typeof onRestart === 'function') {
-          onRestart();
-        } else {
-          resetPresentation();
-        }
-      }
-    } else {
-      // If pausing, clear any active timers
-      clearAnimationTimer();
-      clearMediaTimers();
+    } else { // --- Pausing ---
+      clearAnimationTimer(); clearMediaTimers(); clearHighlightTimers();
+      if (audioRef.current) audioRef.current.pause();
     }
+  }, [isPlaying, countdown, mediaDelayRemaining, isVoicedBlock, advance, scheduleVoicedTextTimers, clearHighlightTimers]);
+
+  // --- Mute Toggle ---
+  const toggleMute = () => {
+      const newMutedState = !isMuted;
+      setIsMuted(newMutedState);
+      if (audioRef.current) {
+          audioRef.current.muted = newMutedState;
+      }
   };
 
-  if (!isVisible) return null; // Don't render anything if not visible
 
-  // Determine the element to display (text or media)
-  const currentMediaData = countdown === null && mediaMap[sentenceIndex];
+  // --- UI Rendering ---
+  if (!isVisible) return null;
+
+  // Determine display element
   let currentDisplayElement = null;
-
-  if (currentMediaData) {
-    // If it's a media item (excluding highlight, which is now treated as text)
-    if (currentMediaData.type === 'video') {
-      const videoSrc = mode === 'presentation'
-        ? `${currentMediaData.src}?autoplay=1&muted=1&title=0&byline=0&portrait=0`
-        : currentMediaData.src;
+  if (countdown === null) {
+    if (isVoicedBlock) {
       currentDisplayElement = (
-        <div key={videoKey} className="relative w-full" style={{ paddingTop: '56.25%' }}>
-          <iframe
-            src={videoSrc}
-            title={currentMediaData.title}
-            frameBorder="0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            className="absolute top-0 left-0 w-full h-full rounded-lg"
-          ></iframe>
-        </div>
+        <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
+          {currentSentenceText.split('').map((char, i) => (
+            <span key={i} className={i <= highlightedCharIndex && char !== ' ' ? 'text-yellow-400' : 'text-gray-300'}>
+              {char}
+            </span>
+          ))}
+        </p>
       );
-    } else if (currentMediaData.type === 'image') {
-      // Fix for image display - handle both element and src cases
-      if (currentMediaData.element) {
-        currentDisplayElement = currentMediaData.element;
-      } else if (currentMediaData.src) {
-        currentDisplayElement = (
-          <img 
-            src={currentMediaData.src} 
-            alt={currentMediaData.title || "Image"} 
-            className="max-w-full max-h-[70vh] mx-auto rounded-lg"
-          />
-        );
-      }
-    } else if (currentMediaData.element && currentMediaData.type !== 'highlight') { // Exclude highlight element
-      // Pass externalTriggerCheck to DragDropGame and Quiz
-      const isDragDropGame = currentMediaData.element && currentMediaData.element.type === DragDropGame;
-      const isCatchOriginGame = currentMediaData.element && currentMediaData.element.type === CatchOriginGame;
-      const isQuiz = currentMediaData.type === 'quiz';
-      
-      const elementType = currentMediaData.element?.type;
-      const extraProps = { 
-        mode: 'presentation',
-        externalTriggerCheck: triggerGameCheck
-      };
-      
-      // Pass title and instruction to game components
-      if (isCatchOriginGame) {
-        extraProps.title = currentMediaData.title || '';
-        extraProps.instruction = currentMediaData.instruction || ''; // Changed from description to instruction
-      }
-      
-      currentDisplayElement = React.cloneElement(
-        currentMediaData.element,
-        extraProps
+    } else if (isRegularText) {
+       currentDisplayElement = (
+        <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
+          {currentSentenceText.split('').map((char, i) => (
+            <span key={i} className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}>
+              {char}
+            </span>
+          ))}
+        </p>
       );
+    } else { // Other media types
+        const mediaData = mediaMap[currentGlobalSentenceIndex];
+        if (mediaData?.type === 'video') {
+            const videoSrc = mode === 'presentation' ? `${mediaData.src}?autoplay=1&muted=1&title=0&byline=0&portrait=0` : mediaData.src;
+            currentDisplayElement = <div key={videoKey} className="relative w-full" style={{ paddingTop: '56.25%' }}><iframe src={videoSrc} title={mediaData.title} frameBorder="0" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen className="absolute top-0 left-0 w-full h-full rounded-lg"></iframe></div>;
+        } else if (mediaData?.type === 'image') {
+            currentDisplayElement = mediaData.element || (mediaData.src ? <img src={mediaData.src} alt={mediaData.title || "Image"} className="max-w-full max-h-[70vh] mx-auto rounded-lg"/> : null);
+        } else if (mediaData?.element && mediaData.type !== 'highlight') {
+            const isCatchOriginGame = mediaData.element?.type === CatchOriginGame;
+            const extraProps = { mode: 'presentation' };
+            if (isCatchOriginGame) {
+                extraProps.title = mediaData.title || '';
+                extraProps.instruction = mediaData.instruction || '';
+            }
+            currentDisplayElement = React.cloneElement(mediaData.element, extraProps);
+        }
     }
   }
 
-  // If it's not a media item OR it's a highlight item (treated as text), render the text animation
-  if (!currentDisplayElement && countdown === null) {
-    currentDisplayElement = (
-      <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
-        {sentence.split('').map((char, i) => (
-          <span
-            key={i}
-            className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
-          >
-            {char}
-          </span>
-        ))}
-      </p>
-    );
-  }
+  // Button Logic
+  const isGameOrQuiz = blockData?.type === 'game' || blockData?.type === 'quiz';
+  const isGameDone = (blockData?.type === 'game' && blockData.gameType === 'drag-drop' && dragDropGameCorrect) || (blockData?.type === 'game' && blockData.gameType === 'catch-origin' && catchOriginGameCorrect);
+  const isQuizDone = blockData?.type === 'quiz' && quizCorrect;
+  const isGameOrQuizDone = isGameDone || isQuizDone;
+  const isImageOrVideo = blockData && !isVoicedBlock && (blockData.type === 'image' || blockData.type === 'video');
+  const isEndOfPresentation = currentGlobalSentenceIndex >= sentences.length - 1;
 
-  // Define common variables for button state
-  const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
-  const isGameType = currentMediaData?.type === 'game'; // Changed from isMinigame to isGameType
-  const isQuizType = currentMediaData?.type === 'quiz';
-  const isDragDropGame = currentMediaData?.element?.type === DragDropGame;
-  const isCatchOriginGame = currentMediaData?.element?.type === CatchOriginGame;
-  const isGameDone = (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
-  const isQuizDone = quizCorrect;
-  // Fix: Include isDragDropGame and isCatchOriginGame in isGameOrQuiz check
-  const isGameOrQuiz = isGameType || isQuizType || isDragDropGame || isCatchOriginGame;
-  const isGameOrQuizDone = (isGameType && isGameDone) || (isQuizType && isQuizDone) || 
-                          (isDragDropGame && dragDropGameCorrect) || (isCatchOriginGame && catchOriginGameCorrect);
-
-  // Helper function to render button content based on state
   const renderButtonContent = () => {
-    // Special case for games and quizzes
-    if (isGameOrQuiz) {
-      if (isGameOrQuizDone) {
-        // Game or quiz is completed - "Continue"
-        return (
-          <>
-            <i className="fas fa-play"></i>
-            <span className="hidden sm:inline ml-1">Continue</span>
-          </>
-        );
+    // For regular paragraph text
+    if (isRegularText) {
+      if (isPlaying) {
+        return <><i className="fas fa-pause"></i><span className="hidden sm:inline ml-1">Pause</span></>;
       } else {
-        // Game or quiz not completed - "Waiting..."
-        return (
-          <>
-            <i className="fas fa-hourglass-half"></i>
-            <span className="hidden sm:inline ml-1">Waiting...</span>
-          </>
-        );
+        if (isEndOfPresentation && charIndex >= currentSentenceText.length) {
+          return <><i className="fas fa-rotate-right"></i><span className="hidden sm:inline ml-1">Start Over</span></>;
+        }
+        return <><i className="fas fa-play"></i><span className="hidden sm:inline ml-1">Continue</span></>;
       }
     }
     
-    // For non-game/quiz content
-    if (isImageOrVideo) {
-      return (
-        <>
-          <i className="fas fa-forward"></i>
-          <span className="hidden sm:inline ml-1">Skip</span>
-        </>
-      );
-    } else if (isPlaying) {
-      return (
-        <>
-          <i className="fas fa-pause"></i>
-          <span className="hidden sm:inline ml-1">Pause</span>
-        </>
-      );
-    } else {
-      // Not playing - determine the appropriate button label
-      if (sentenceIndex === 0) {
-        // First slide - always "Start"
-        return (
-          <>
-            <i className="fas fa-play"></i>
-            <span className="hidden sm:inline ml-1">Start</span>
-          </>
-        );
-      } else if (sentenceIndex >= sentences.length - 1 && (mediaMap[sentenceIndex] || charIndex >= sentence.length)) {
-        // Last slide - "Start Over"
-        return (
-          <>
-            <i className="fas fa-rotate-right"></i>
-            <span className="hidden sm:inline ml-1">Start Over</span>
-          </>
-        );
+    // For voiced-text content
+    if (isVoicedBlock) {
+      if (isPlaying) {
+        return <><i className="fas fa-pause"></i><span className="hidden sm:inline ml-1">Pause</span></>;
       } else {
-        // Regular slide that's paused - "Continue"
-        return (
-          <>
-            <i className="fas fa-play"></i>
-            <span className="hidden sm:inline ml-1">Continue</span>
-          </>
-        );
+        if (isEndOfPresentation && 
+            currentVoicedBlockInfo.current && 
+            highlightedCharIndex >= (currentVoicedBlockInfo.current.sentencesData[
+              currentVoicedBlockInfo.current.sentencesData.length - 1
+            ]?.text.length - 1)) {
+          return <><i className="fas fa-rotate-right"></i><span className="hidden sm:inline ml-1">Start Over</span></>;
+        }
+        return <><i className="fas fa-play"></i><span className="hidden sm:inline ml-1">Continue</span></>;
       }
     }
+    
+    // For game or quiz content
+    if (isGameOrQuiz) {
+      return isGameOrQuizDone ? 
+        <><i className="fas fa-play"></i><span className="hidden sm:inline ml-1">Continue</span></> : 
+        <><i className="fas fa-hourglass-half"></i><span className="hidden sm:inline ml-1">Waiting...</span></>;
+    }
+    
+    // For image or video content
+    if (isImageOrVideo) {
+      return <><i className="fas fa-forward"></i><span className="hidden sm:inline ml-1">Skip</span></>;
+    }
+    
+    // Fallback for any other content type
+    return <><i className="fas fa-play"></i><span className="hidden sm:inline ml-1">Continue</span></>;
   };
 
-  // Determine if the button should be disabled
-  // For games/quizzes, the button should be enabled only when the game is in a checkable state
-  const isButtonDisabled = countdown !== null;
+  // Only disable the button during countdown or when a regular text sentence is complete
+  // For voiced-text, the button should always be enabled for play/pause
+  const isButtonDisabled = countdown !== null || 
+    (isRegularText && charIndex >= currentSentenceText.length && !isEndOfPresentation);
 
-  // Force advance for game/quiz completion
   const handleButtonClick = () => {
+    // Always stop pulsing animation when button is clicked
     setLocalPulse(false);
 
-    const isImageOrVideo = currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video');
+    // Handle paragraph or voiced-text content first (most common case)
+    if (isRegularText || isVoicedBlock) {
+      // Special case for end of presentation
+      if (!isPlaying && isEndOfPresentation) {
+        const isLastVoicedCharDone =
+          isVoicedBlock &&
+          currentVoicedBlockInfo.current &&
+          highlightedCharIndex >=
+            (currentVoicedBlockInfo.current.sentencesData[
+              currentVoicedBlockInfo.current.sentencesData.length - 1
+            ]?.text.length - 1);
+        const isLastTypedCharDone = isRegularText && charIndex >= currentSentenceText.length;
+        
+        if (isLastVoicedCharDone || isLastTypedCharDone) {
+          console.log('Button Click: End of presentation, calling onRestart/resetPresentation.');
+          if (typeof onRestart === 'function') {
+            onRestart();
+          } else {
+            resetPresentation();
+          }
+          return;
+        }
+      }
+      
+      // Normal paragraph/voiced-text toggle play/pause
+      console.log('Button Click: Toggling play/pause for text.');
+      togglePlayPause();
+      return;
+    }
+    
+    // Handle image or video content
     if (isImageOrVideo) {
       skipDelay();
       return;
     }
 
-    // Special handling for games and quizzes
+    // Handle game or quiz content
     if (isGameOrQuiz) {
       if (isGameOrQuizDone) {
-        // If game/quiz is completed, advance to next slide
+        console.log('Game/Quiz completed, advancing to next content');
+        
+        // Log the current state for debugging
+        const nextIndex = currentGlobalSentenceIndex + 1;
+        const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, lessonContent.current);
+        console.log('Next content type:', nextItemData?.type);
+        
+        // Directly advance to next content
         advance();
-        return;
+        
+        // Force isPlaying to true immediately and log it
+        console.log('Setting isPlaying to true');
+        setIsPlaying(true);
       } else {
-        // If game/quiz is not completed, show appropriate message
-        // console.log("Game/quiz not completed, showing message...");
-        
-        // Show different messages for games and quizzes
-        if (isQuizType) {
-          setStatusMessage('Complete the quiz to continue');
-        } else {
-          setStatusMessage('Complete the game to continue');
-        }
-        
+        setStatusMessage(
+          blockData?.type === 'quiz' ? 'Complete the quiz to continue' : 'Complete the game to continue'
+        );
         setShowStatusToast(true);
         setTimeout(() => setShowStatusToast(false), 3000);
-        return;
       }
+      return;
     }
 
-    // For regular slides, toggle play/pause
-    togglePlayPause();
+    // Handle other media at end of presentation
+    if (!isPlaying && isEndOfPresentation && mediaMap[currentGlobalSentenceIndex]) {
+      console.log('Button Click: End of presentation with media, calling onRestart/resetPresentation.');
+      if (typeof onRestart === 'function') {
+        onRestart();
+      } else {
+        resetPresentation();
+      }
+      return;
+    }
   };
 
+  // --- Component Return ---
   return (
-    // Ensure flex-col and overflow-hidden on the main container
     <div className="fixed inset-0 bg-brand-gray-darker text-gray-100 flex flex-col items-center z-50 overflow-hidden presentation">
-      {/* Countdown Overlay */}
-      {countdown !== null && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black bg-opacity-50">
-          <div className="text-white text-9xl font-bold animate-ping opacity-75">{countdown}</div>
-        </div>
-      )}
-
-      {/* Main Content Area - Add overflow-y-auto and bottom padding */}
-      <div className={`flex-1 overflow-y-auto w-full max-w-5xl text-center p-1 sm:p-6 pb-24`}> {/* Added pb-24 */}
+      {countdown !== null && <div className="absolute inset-0 flex items-center justify-center z-20 bg-black bg-opacity-50"><div className="text-white text-9xl font-bold animate-ping opacity-75">{countdown}</div></div>}
+      <div className={`flex-1 overflow-y-auto w-full max-w-5xl text-center p-1 sm:p-6 pb-24`}>
         <div className="min-h-full flex flex-col justify-center items-center w-full">
-          {currentDisplayElement ? (
-            // Render media element wrapper - conditional padding/bg/border for mobile
-            <div className={`w-full ${currentMediaData?.type !== 'video' ? 'sm:p-4 sm:bg-gray-800 sm:rounded-lg' : ''}`}>
-              {currentDisplayElement}
-            </div>
-          ) : (
-            // Render text content directly if not media or during countdown
-            countdown === null ? (
-              <p className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-normal whitespace-pre-wrap">
-                {sentence.split('').map((char, i) => (
-                  <span
-                    key={i}
-                    className={i < charIndex ? 'text-yellow-400' : 'text-gray-300'}
-                  >
-                    {char}
-                  </span>
-                ))}
-              </p>
-            ) : <div></div> // Placeholder during countdown if no media
+          {countdown === null && currentDisplayElement && (
+             <div className={`w-full ${blockData?.type !== 'video' && !isVoicedBlock ? 'sm:p-4 sm:bg-gray-800 sm:rounded-lg' : ''}`}>
+               {currentDisplayElement}
+             </div>
           )}
         </div>
       </div>
-
-      {/* Media Delay Indicator */}
-      {mediaDelayRemaining !== null && !(currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video')) && (
+      {mediaDelayRemaining !== null && !isVoicedBlock && !(blockData?.type === 'image' || blockData?.type === 'video') && (
         <div className="absolute top-5 right-5 z-40 flex items-center gap-2 p-2 bg-black bg-opacity-50 rounded-lg">
-          <span className="text-sm text-gray-300">
-            {statusMessage || `Next in... ${mediaDelayRemaining}s`}
-          </span>
-          {(currentMediaData?.type === 'image' || 
-            currentMediaData?.type === 'video' || 
-            (currentMediaData?.type === 'quiz' && quizCorrect)) && (
-            <button
-              onClick={skipDelay}
-              className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded-md font-medium"
-            >
-              Skip
-            </button>
-          )}
+          <span className="text-sm text-gray-300">{statusMessage || `Next in... ${mediaDelayRemaining}s`}</span>
+          {(blockData?.type === 'quiz' && quizCorrect) && (<button onClick={skipDelay} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded-md font-medium">Skip</button>)}
         </div>
       )}
-
-      {/* Game/Quiz Status Toast */}
-      {showStatusToast && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow">
-          {statusMessage}
-        </div>
-      )}
-
-      {/* Footer Controls - Reverted to fixed positioning */}
+      {showStatusToast && <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow">{statusMessage}</div>}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-black bg-opacity-50 backdrop-blur-sm z-30">
         <div className="max-w-4xl mx-auto p-3 md:p-4">
-          {/* Progress Bar */}
-          <div className="bg-gray-600 h-1.5 rounded-full overflow-hidden mb-3">
-            <div
-              className="bg-yellow-400 h-full transition-all duration-150 ease-linear"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          {/* Buttons */}
+          <div className="bg-gray-600 h-1.5 rounded-full overflow-hidden mb-3"><div className="bg-yellow-400 h-full transition-all duration-150 ease-linear" style={{ width: `${progress}%` }}/></div>
           <div className="flex justify-between items-center text-sm">
-            {/* Speed Controls */}
-            <div className="flex gap-2 items-center">
-              <span className="hidden sm:inline text-gray-300 text-xs font-medium">Speed:</span>
-              {Object.keys(getPresentationSpeed()).map(speedKey => (
-                <button
-                  key={speedKey}
-                  onClick={() => setCurrentSpeed(speedKey)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    currentSpeed === speedKey
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {speedKey}
-                </button>
-              ))}
+            {/* Left side: Speed Controls (only for regular text) or Mute Button (only for voiced text) or Placeholder */}
+            <div className="flex-1 flex justify-start min-w-[150px]"> {/* Added min-width to prevent collapse */}
+                {isRegularText ? (
+                    <div className={`flex gap-2 items-center`}>
+                      <span className="hidden sm:inline text-gray-300 text-xs font-medium">Speed:</span>
+                      {Object.keys(getPresentationSpeed()).map(speedKey => <button key={speedKey} onClick={() => setCurrentSpeed(speedKey)} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${currentSpeed === speedKey ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>{speedKey}</button>)}
+                    </div>
+                ) : isVoicedBlock ? (
+                     <button onClick={toggleMute} className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600">
+                         <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-high'}`}></i>
+                         <span className="hidden sm:inline ml-1">{isMuted ? 'Unmute' : 'Mute'}</span>
+                     </button>
+                ) : (
+                    <div></div> // Empty div as placeholder for other types (game, image, etc.)
+                )}
             </div>
-            {/* Play/Pause/Exit Controls */}
+            {/* Action Buttons */}
             <div className="flex gap-3">
-              <button
-                key={pulseKey}
-                onClick={handleButtonClick}
-                disabled={isButtonDisabled}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow ${
-                  isButtonDisabled
-                    ? 'bg-gray-500 text-gray-400 cursor-not-allowed'
-                    : (currentMediaData && (currentMediaData.type === 'image' || currentMediaData.type === 'video'))
-                      ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
-                      : isGameOrQuiz
-                        ? (isGameOrQuizDone
-                            ? 'bg-brand-green hover:bg-brand-green-dark text-white'
-                            : 'bg-blue-500 hover:bg-blue-600 text-white')
-                        : isPlaying
-                          ? 'bg-gray-300 hover:bg-gray-400 text-gray-800'
-                          : 'bg-brand-green hover:bg-brand-green-dark text-white'
-                } ${(localPulse || (isGameOrQuiz && isGameOrQuizDone)) ? 'animate-pulse-custom' : ''}`}
-              >
-                {renderButtonContent()}
-              </button>
-              <button
-                onClick={() => onClose(sentenceIndex)} // Pass current sentenceIndex on close
-                className="px-4 py-1.5 rounded-md bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium transition-colors"
-              >
-                <i className="hidden sm:inline fas fa-times"></i>
-                <span className="ml-0 sm:ml-1">Close</span>
+              {countdown === null && (
+                <button key={pulseKey} onClick={handleButtonClick} disabled={isButtonDisabled} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow ${isButtonDisabled ? 'bg-gray-500 text-gray-400 cursor-not-allowed' : isImageOrVideo ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : isGameOrQuiz ? (isGameOrQuizDone ? 'bg-brand-green hover:bg-brand-green-dark text-white' : 'bg-blue-500 hover:bg-blue-600 text-white') : isPlaying ? 'bg-gray-300 hover:bg-gray-400 text-gray-800' : 'bg-brand-green hover:bg-brand-green-dark text-white'} ${(localPulse || (isGameOrQuiz && isGameOrQuizDone)) ? 'animate-pulse-custom' : ''}`}>
+                  {renderButtonContent()}
+                </button>
+              )}
+              <button onClick={() => onClose(currentGlobalSentenceIndex)} className="px-4 py-1.5 rounded-md bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium transition-colors">
+                <i className="hidden sm:inline fas fa-times"></i><span className="ml-0 sm:ml-1">Close</span>
               </button>
             </div>
           </div>
