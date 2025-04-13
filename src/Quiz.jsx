@@ -129,7 +129,7 @@ export default function Quiz({ title, questions, onCorrect, mode = 'reading', ex
                  <div className={`mt-4 p-3 rounded-md text-sm ${
                     isDarkMode ? 'bg-red-900 bg-opacity-50 text-red-200' : 'bg-red-50 text-red-800'
                  }`}>
-                    🤔 Có vẻ chưa đúng...
+                    🤔 Not quite right — give it another shot...
                  </div>
              )}
         </div>
