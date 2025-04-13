@@ -1,15 +1,882 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>aicademy</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>aicademy is launching</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, sans-serif;
+            /* Dark mode background gradient */
+            background: #000;
+            /* Light text color for dark background */
+            color: #e0e0e0;
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .logo {
+            display: block;
+            margin: 16px auto 32px auto;
+            /* tăng top margin để có breathing space */
+            height: 96px;
+            /* tăng từ khoảng 40px lên 64px */
+            width: auto;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .subtitle {
+            /* Lighter gray for dark mode */
+            color: #aaa;
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .illustration {
+            max-width: 280px;
+            margin: 0 auto 2rem;
+        }
+
+        .paragraph {
+            font-size: 0.95rem;
+            /* Slightly lighter text for paragraphs */
+            color: #ccc;
+            line-height: 1.5;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .paragraph.dimmed {
+             /* Lighter gray for dimmed text */
+            color: #999;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
+        .paragraph .highlight {
+             /* Brighter green for dark mode link */
+            color: #34d399; /* Example: Tailwind's green-400 */
+            font-weight: 500;
+            text-decoration: none;
+        }
+        
+        footer a.highlight {
+            color: #777;
+            text-decoration: underline;
+        }
+
+        .note-line {
+             /* Lighter gray for note */
+            color: #aaa;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 2rem;
+            font-style: italic;
+            line-height: 1.6;
+        }
+
+
+        footer {
+            margin-top: 3rem;
+            font-size: 0.8rem;
+             /* Even lighter gray for footer */
+            color: #777;
+        }
+
+        /* Styles for SVG/PNG transition */
+        .image-container {
+            position: relative;
+            display: inline-block; /* Adjust as needed (inline-block or block) */
+            line-height: 0; /* Prevent extra space */
+        }
+
+        .image-container svg,
+        .image-container img.final-png {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.5s ease-in-out; /* Smooth fade transition */
+        }
+
+        .image-container svg {
+            opacity: 1;
+            z-index: 1; /* SVG initially on top */
+        }
+
+        .image-container img.final-png {
+            opacity: 0;
+            z-index: 2; /* PNG below initially, but will fade in on top */
+        }
+
+        /* State when PNG is loaded */
+        .image-container.loaded svg {
+            opacity: 0;
+        }
+
+        .image-container.loaded img.final-png {
+            opacity: 1;
+        }
+
+        /* Specific container styles to maintain layout */
+        .logo-container {
+             /* Match original logo styles */
+            display: block;
+            margin: 16px auto 32px auto;
+            height: 96px; /* Original height */
+            /* Calculate width based on height and SVG/PNG aspect ratio (896/384) */
+            width: calc(96px * (896 / 384));
+            position: relative; /* Needed for absolute positioning inside */
+            overflow: hidden; /* Prevent content spill if aspect ratios differ slightly */
+        }
+        /* Ensure inner elements fill the fixed logo container */
+        .logo-container svg,
+        .logo-container img.final-png {
+            object-fit: contain; /* Scale image/svg to fit within the container */
+        }
+
+
+        .illustration-container {
+            /* Match original illustration styles */
+            max-width: 280px; /* Original max-width */
+            width: 100%; /* Use full width up to max-width */
+            margin: 0 auto 2rem;
+            display: block; /* Ensure it takes block space */
+            position: relative; /* Needed for absolute positioning inside */
+            overflow: hidden; /* Prevent content spill */
+            /* Height will be determined by the relatively positioned PNG below */
+        }
+         /* SVG is absolutely positioned on top */
+         .illustration-container svg {
+             position: absolute;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             object-fit: contain; /* Scale SVG to fit */
+             z-index: 1;
+             opacity: 1;
+             transition: opacity 0.5s ease-in-out;
+         }
+         /* PNG is relatively positioned to define container height, initially invisible */
+         .illustration-container img.final-png {
+             position: relative; /* Changed from absolute */
+             display: block; /* Ensure it takes space */
+             width: 100%;
+             height: auto; /* Maintain aspect ratio */
+             opacity: 0;
+             transition: opacity 0.5s ease-in-out;
+             /* No z-index needed, SVG is absolute */
+         }
+
+         /* State when PNG is loaded */
+         .illustration-container.loaded svg {
+            opacity: 0;
+         }
+         .illustration-container.loaded img.final-png {
+            opacity: 1;
+         }
+
+        /* Page Load Overlay */
+        #page-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Black overlay */
+            opacity: 1;
+            z-index: 9999; /* Ensure it's on top */
+            transition: opacity 1.5s ease-out; /* 1.5 second fade out */
+            pointer-events: auto; /* Initially blocks interaction */
+        }
+
+        #page-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none; /* Allow interaction after fade */
+        }
+
+
+    </style>
 </head>
+
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+    <!-- Page Load Overlay -->
+    <div id="page-overlay"></div>
+
+    <!-- Logo Container -->
+    <div id="logo-container" class="image-container logo-container">
+        <!-- Inline SVG Placeholder -->
+        <svg viewBox="0 0 1472 832" width="1472" height="832" shape-rendering="crispEdges">
+            <rect x="0" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="128" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="192" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="256" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="320" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="0" width="64" height="64" fill="rgb(8, 13, 3)" />
+            <rect x="576" y="0" width="64" height="64" fill="rgb(38, 60, 16)" />
+            <rect x="640" y="0" width="64" height="64" fill="rgb(1, 2, 0)" />
+            <rect x="704" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="768" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="832" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1088" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1152" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1216" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1280" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1344" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="128" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="192" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="256" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="320" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="64" width="64" height="64" fill="rgb(17, 29, 7)" />
+            <rect x="576" y="64" width="64" height="64" fill="rgb(57, 93, 24)" />
+            <rect x="640" y="64" width="64" height="64" fill="rgb(55, 88, 23)" />
+            <rect x="704" y="64" width="64" height="64" fill="rgb(44, 72, 19)" />
+            <rect x="768" y="64" width="64" height="64" fill="rgb(45, 72, 19)" />
+            <rect x="832" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1088" y="64" width="64" height="64" fill="rgb(32, 51, 13)" />
+            <rect x="1152" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1216" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1280" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1344" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="128" width="64" height="64" fill="rgb(41, 67, 17)" />
+            <rect x="64" y="128" width="64" height="64" fill="rgb(32, 53, 13)" />
+            <rect x="128" y="128" width="64" height="64" fill="rgb(34, 54, 14)" />
+            <rect x="192" y="128" width="64" height="64" fill="rgb(48, 77, 20)" />
+            <rect x="256" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="320" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="128" width="64" height="64" fill="rgb(15, 26, 6)" />
+            <rect x="576" y="128" width="64" height="64" fill="rgb(22, 39, 9)" />
+            <rect x="640" y="128" width="64" height="64" fill="rgb(40, 67, 17)" />
+            <rect x="704" y="128" width="64" height="64" fill="rgb(22, 37, 9)" />
+            <rect x="768" y="128" width="64" height="64" fill="rgb(25, 42, 11)" />
+            <rect x="832" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="128" width="64" height="64" fill="rgb(1, 1, 0)" />
+            <rect x="1088" y="128" width="64" height="64" fill="rgb(45, 74, 19)" />
+            <rect x="1152" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1216" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1280" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1344" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="192" width="64" height="64" fill="rgb(33, 55, 14)" />
+            <rect x="64" y="192" width="64" height="64" fill="rgb(31, 55, 13)" />
+            <rect x="128" y="192" width="64" height="64" fill="rgb(40, 69, 17)" />
+            <rect x="192" y="192" width="64" height="64" fill="rgb(36, 61, 15)" />
+            <rect x="256" y="192" width="64" height="64" fill="rgb(10, 17, 4)" />
+            <rect x="320" y="192" width="64" height="64" fill="rgb(20, 32, 8)" />
+            <rect x="384" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="192" width="64" height="64" fill="rgb(33, 55, 14)" />
+            <rect x="576" y="192" width="64" height="64" fill="rgb(35, 58, 15)" />
+            <rect x="640" y="192" width="64" height="64" fill="rgb(47, 77, 19)" />
+            <rect x="704" y="192" width="64" height="64" fill="rgb(32, 54, 13)" />
+            <rect x="768" y="192" width="64" height="64" fill="rgb(42, 70, 18)" />
+            <rect x="832" y="192" width="64" height="64" fill="rgb(1, 1, 0)" />
+            <rect x="896" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="192" width="64" height="64" fill="rgb(17, 27, 7)" />
+            <rect x="1088" y="192" width="64" height="64" fill="rgb(28, 48, 12)" />
+            <rect x="1152" y="192" width="64" height="64" fill="rgb(34, 56, 14)" />
+            <rect x="1216" y="192" width="64" height="64" fill="rgb(19, 31, 8)" />
+            <rect x="1280" y="192" width="64" height="64" fill="rgb(7, 12, 3)" />
+            <rect x="1344" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="256" width="64" height="64" fill="rgb(39, 65, 16)" />
+            <rect x="64" y="256" width="64" height="64" fill="rgb(32, 58, 13)" />
+            <rect x="128" y="256" width="64" height="64" fill="rgb(39, 68, 16)" />
+            <rect x="192" y="256" width="64" height="64" fill="rgb(35, 59, 15)" />
+            <rect x="256" y="256" width="64" height="64" fill="rgb(61, 98, 25)" />
+            <rect x="320" y="256" width="64" height="64" fill="rgb(22, 36, 9)" />
+            <rect x="384" y="256" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="256" width="64" height="64" fill="rgb(0, 1, 0)" />
+            <rect x="512" y="256" width="64" height="64" fill="rgb(63, 102, 27)" />
+            <rect x="576" y="256" width="64" height="64" fill="rgb(71, 114, 30)" />
+            <rect x="640" y="256" width="64" height="64" fill="rgb(62, 99, 26)" />
+            <rect x="704" y="256" width="64" height="64" fill="rgb(69, 111, 29)" />
+            <rect x="768" y="256" width="64" height="64" fill="rgb(72, 116, 30)" />
+            <rect x="832" y="256" width="64" height="64" fill="rgb(11, 19, 5)" />
+            <rect x="896" y="256" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="256" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="256" width="64" height="64" fill="rgb(25, 42, 10)" />
+            <rect x="1088" y="256" width="64" height="64" fill="rgb(37, 63, 15)" />
+            <rect x="1152" y="256" width="64" height="64" fill="rgb(51, 84, 21)" />
+            <rect x="1216" y="256" width="64" height="64" fill="rgb(40, 65, 17)" />
+            <rect x="1280" y="256" width="64" height="64" fill="rgb(64, 104, 27)" />
+            <rect x="1344" y="256" width="64" height="64" fill="rgb(57, 93, 24)" />
+            <rect x="1408" y="256" width="64" height="64" fill="rgb(3, 6, 1)" />
+            <rect x="0" y="320" width="64" height="64" fill="rgb(54, 90, 23)" />
+            <rect x="64" y="320" width="64" height="64" fill="rgb(72, 116, 31)" />
+            <rect x="128" y="320" width="64" height="64" fill="rgb(70, 113, 29)" />
+            <rect x="192" y="320" width="64" height="64" fill="rgb(65, 106, 27)" />
+            <rect x="256" y="320" width="64" height="64" fill="rgb(27, 44, 11)" />
+            <rect x="320" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="320" width="64" height="64" fill="rgb(54, 88, 23)" />
+            <rect x="576" y="320" width="64" height="64" fill="rgb(76, 122, 32)" />
+            <rect x="640" y="320" width="64" height="64" fill="rgb(50, 81, 21)" />
+            <rect x="704" y="320" width="64" height="64" fill="rgb(76, 122, 32)" />
+            <rect x="768" y="320" width="64" height="64" fill="rgb(66, 107, 28)" />
+            <rect x="832" y="320" width="64" height="64" fill="rgb(5, 8, 2)" />
+            <rect x="896" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="320" width="64" height="64" fill="rgb(23, 40, 10)" />
+            <rect x="1088" y="320" width="64" height="64" fill="rgb(29, 50, 12)" />
+            <rect x="1152" y="320" width="64" height="64" fill="rgb(50, 83, 21)" />
+            <rect x="1216" y="320" width="64" height="64" fill="rgb(30, 52, 13)" />
+            <rect x="1280" y="320" width="64" height="64" fill="rgb(26, 44, 11)" />
+            <rect x="1344" y="320" width="64" height="64" fill="rgb(31, 52, 13)" />
+            <rect x="1408" y="320" width="64" height="64" fill="rgb(44, 72, 19)" />
+            <rect x="0" y="384" width="64" height="64" fill="rgb(29, 48, 12)" />
+            <rect x="64" y="384" width="64" height="64" fill="rgb(73, 116, 31)" />
+            <rect x="128" y="384" width="64" height="64" fill="rgb(76, 122, 32)" />
+            <rect x="192" y="384" width="64" height="64" fill="rgb(35, 57, 15)" />
+            <rect x="256" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="320" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="384" width="64" height="64" fill="rgb(3, 5, 1)" />
+            <rect x="576" y="384" width="64" height="64" fill="rgb(33, 54, 14)" />
+            <rect x="640" y="384" width="64" height="64" fill="rgb(36, 60, 15)" />
+            <rect x="704" y="384" width="64" height="64" fill="rgb(45, 72, 19)" />
+            <rect x="768" y="384" width="64" height="64" fill="rgb(8, 13, 3)" />
+            <rect x="832" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="384" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="384" width="64" height="64" fill="rgb(10, 16, 4)" />
+            <rect x="1024" y="384" width="64" height="64" fill="rgb(13, 24, 5)" />
+            <rect x="1088" y="384" width="64" height="64" fill="rgb(1, 2, 0)" />
+            <rect x="1152" y="384" width="64" height="64" fill="rgb(57, 92, 24)" />
+            <rect x="1216" y="384" width="64" height="64" fill="rgb(72, 116, 30)" />
+            <rect x="1280" y="384" width="64" height="64" fill="rgb(67, 110, 29)" />
+            <rect x="1344" y="384" width="64" height="64" fill="rgb(59, 95, 25)" />
+            <rect x="1408" y="384" width="64" height="64" fill="rgb(30, 48, 12)" />
+            <rect x="0" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="448" width="64" height="64" fill="rgb(31, 55, 13)" />
+            <rect x="128" y="448" width="64" height="64" fill="rgb(37, 63, 16)" />
+            <rect x="192" y="448" width="64" height="64" fill="rgb(2, 3, 0)" />
+            <rect x="256" y="448" width="64" height="64" fill="rgb(1, 2, 0)" />
+            <rect x="320" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="576" y="448" width="64" height="64" fill="rgb(17, 27, 7)" />
+            <rect x="640" y="448" width="64" height="64" fill="rgb(3, 6, 1)" />
+            <rect x="704" y="448" width="64" height="64" fill="rgb(23, 38, 9)" />
+            <rect x="768" y="448" width="64" height="64" fill="rgb(8, 13, 3)" />
+            <rect x="832" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="448" width="64" height="64" fill="rgb(7, 11, 3)" />
+            <rect x="1024" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1088" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1152" y="448" width="64" height="64" fill="rgb(25, 42, 10)" />
+            <rect x="1216" y="448" width="64" height="64" fill="rgb(63, 101, 26)" />
+            <rect x="1280" y="448" width="64" height="64" fill="rgb(57, 92, 24)" />
+            <rect x="1344" y="448" width="64" height="64" fill="rgb(6, 10, 2)" />
+            <rect x="1408" y="448" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="512" width="64" height="64" fill="rgb(6, 12, 2)" />
+            <rect x="128" y="512" width="64" height="64" fill="rgb(7, 15, 2)" />
+            <rect x="192" y="512" width="64" height="64" fill="rgb(6, 11, 2)" />
+            <rect x="256" y="512" width="64" height="64" fill="rgb(21, 35, 9)" />
+            <rect x="320" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="512" width="64" height="64" fill="rgb(1, 2, 0)" />
+            <rect x="448" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="512" width="64" height="64" fill="rgb(1, 3, 0)" />
+            <rect x="576" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="640" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="704" y="512" width="64" height="64" fill="rgb(3, 7, 1)" />
+            <rect x="768" y="512" width="64" height="64" fill="rgb(42, 69, 18)" />
+            <rect x="832" y="512" width="64" height="64" fill="rgb(0, 1, 0)" />
+            <rect x="896" y="512" width="64" height="64" fill="rgb(1, 2, 0)" />
+            <rect x="960" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="512" width="64" height="64" fill="rgb(1, 3, 0)" />
+            <rect x="1088" y="512" width="64" height="64" fill="rgb(0, 2, 0)" />
+            <rect x="1152" y="512" width="64" height="64" fill="rgb(5, 10, 2)" />
+            <rect x="1216" y="512" width="64" height="64" fill="rgb(18, 29, 7)" />
+            <rect x="1280" y="512" width="64" height="64" fill="rgb(19, 32, 8)" />
+            <rect x="1344" y="512" width="64" height="64" fill="rgb(0, 1, 0)" />
+            <rect x="1408" y="512" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="576" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="576" width="64" height="64" fill="rgb(31, 53, 13)" />
+            <rect x="128" y="576" width="64" height="64" fill="rgb(46, 77, 19)" />
+            <rect x="192" y="576" width="64" height="64" fill="rgb(12, 20, 5)" />
+            <rect x="256" y="576" width="64" height="64" fill="rgb(39, 63, 16)" />
+            <rect x="320" y="576" width="64" height="64" fill="rgb(41, 67, 17)" />
+            <rect x="384" y="576" width="64" height="64" fill="rgb(38, 63, 16)" />
+            <rect x="448" y="576" width="64" height="64" fill="rgb(23, 39, 10)" />
+            <rect x="512" y="576" width="64" height="64" fill="rgb(38, 62, 16)" />
+            <rect x="576" y="576" width="64" height="64" fill="rgb(24, 41, 10)" />
+            <rect x="640" y="576" width="64" height="64" fill="rgb(40, 65, 16)" />
+            <rect x="704" y="576" width="64" height="64" fill="rgb(25, 42, 10)" />
+            <rect x="768" y="576" width="64" height="64" fill="rgb(44, 71, 18)" />
+            <rect x="832" y="576" width="64" height="64" fill="rgb(43, 72, 18)" />
+            <rect x="896" y="576" width="64" height="64" fill="rgb(43, 72, 18)" />
+            <rect x="960" y="576" width="64" height="64" fill="rgb(40, 69, 17)" />
+            <rect x="1024" y="576" width="64" height="64" fill="rgb(36, 62, 15)" />
+            <rect x="1088" y="576" width="64" height="64" fill="rgb(50, 84, 21)" />
+            <rect x="1152" y="576" width="64" height="64" fill="rgb(49, 80, 21)" />
+            <rect x="1216" y="576" width="64" height="64" fill="rgb(37, 61, 15)" />
+            <rect x="1280" y="576" width="64" height="64" fill="rgb(27, 46, 11)" />
+            <rect x="1344" y="576" width="64" height="64" fill="rgb(41, 67, 17)" />
+            <rect x="1408" y="576" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="640" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="640" width="64" height="64" fill="rgb(36, 60, 15)" />
+            <rect x="128" y="640" width="64" height="64" fill="rgb(48, 81, 20)" />
+            <rect x="192" y="640" width="64" height="64" fill="rgb(8, 14, 3)" />
+            <rect x="256" y="640" width="64" height="64" fill="rgb(40, 66, 17)" />
+            <rect x="320" y="640" width="64" height="64" fill="rgb(48, 78, 20)" />
+            <rect x="384" y="640" width="64" height="64" fill="rgb(1, 3, 0)" />
+            <rect x="448" y="640" width="64" height="64" fill="rgb(25, 44, 10)" />
+            <rect x="512" y="640" width="64" height="64" fill="rgb(33, 56, 14)" />
+            <rect x="576" y="640" width="64" height="64" fill="rgb(33, 55, 14)" />
+            <rect x="640" y="640" width="64" height="64" fill="rgb(47, 77, 20)" />
+            <rect x="704" y="640" width="64" height="64" fill="rgb(0, 2, 0)" />
+            <rect x="768" y="640" width="64" height="64" fill="rgb(44, 73, 19)" />
+            <rect x="832" y="640" width="64" height="64" fill="rgb(53, 86, 23)" />
+            <rect x="896" y="640" width="64" height="64" fill="rgb(20, 37, 8)" />
+            <rect x="960" y="640" width="64" height="64" fill="rgb(34, 62, 14)" />
+            <rect x="1024" y="640" width="64" height="64" fill="rgb(12, 25, 5)" />
+            <rect x="1088" y="640" width="64" height="64" fill="rgb(45, 76, 19)" />
+            <rect x="1152" y="640" width="64" height="64" fill="rgb(35, 59, 15)" />
+            <rect x="1216" y="640" width="64" height="64" fill="rgb(11, 19, 4)" />
+            <rect x="1280" y="640" width="64" height="64" fill="rgb(50, 82, 21)" />
+            <rect x="1344" y="640" width="64" height="64" fill="rgb(18, 30, 8)" />
+            <rect x="1408" y="640" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="704" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="704" width="64" height="64" fill="rgb(27, 43, 11)" />
+            <rect x="128" y="704" width="64" height="64" fill="rgb(29, 47, 12)" />
+            <rect x="192" y="704" width="64" height="64" fill="rgb(21, 35, 9)" />
+            <rect x="256" y="704" width="64" height="64" fill="rgb(26, 43, 11)" />
+            <rect x="320" y="704" width="64" height="64" fill="rgb(22, 36, 9)" />
+            <rect x="384" y="704" width="64" height="64" fill="rgb(28, 45, 11)" />
+            <rect x="448" y="704" width="64" height="64" fill="rgb(16, 26, 7)" />
+            <rect x="512" y="704" width="64" height="64" fill="rgb(27, 44, 11)" />
+            <rect x="576" y="704" width="64" height="64" fill="rgb(26, 42, 11)" />
+            <rect x="640" y="704" width="64" height="64" fill="rgb(19, 31, 8)" />
+            <rect x="704" y="704" width="64" height="64" fill="rgb(24, 39, 10)" />
+            <rect x="768" y="704" width="64" height="64" fill="rgb(26, 43, 11)" />
+            <rect x="832" y="704" width="64" height="64" fill="rgb(23, 37, 9)" />
+            <rect x="896" y="704" width="64" height="64" fill="rgb(26, 42, 11)" />
+            <rect x="960" y="704" width="64" height="64" fill="rgb(23, 38, 10)" />
+            <rect x="1024" y="704" width="64" height="64" fill="rgb(19, 31, 8)" />
+            <rect x="1088" y="704" width="64" height="64" fill="rgb(30, 50, 13)" />
+            <rect x="1152" y="704" width="64" height="64" fill="rgb(24, 40, 10)" />
+            <rect x="1216" y="704" width="64" height="64" fill="rgb(12, 20, 5)" />
+            <rect x="1280" y="704" width="64" height="64" fill="rgb(35, 57, 15)" />
+            <rect x="1344" y="704" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="704" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="0" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="64" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="128" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="192" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="256" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="320" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="384" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="448" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="512" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="576" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="640" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="704" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="768" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="832" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="896" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="960" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1024" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1088" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1152" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1216" y="768" width="64" height="64" fill="rgb(14, 22, 6)" />
+            <rect x="1280" y="768" width="64" height="64" fill="rgb(17, 27, 7)" />
+            <rect x="1344" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            <rect x="1408" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+            </svg>
+        <!-- Final PNG Image -->
+        <img src="logo.png" class="final-png" alt="aicademy logo" />
+    </div>
+
+    <h1>aicademy is launching this May</h1>
+    <div class="subtitle">But if you're too curious to wait...</div>
+
+    <!-- Illustration Container -->
+    <div id="illustration-container" class="image-container illustration-container">
+        <!-- Inline SVG Placeholder -->
+        <svg viewBox="0 0 1408 832" width="1408" height="832" shape-rendering="crispEdges">
+<rect x="0" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="64" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="128" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="192" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="256" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="320" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="384" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="448" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="512" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="576" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="640" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="704" y="0" width="64" height="64" fill="rgb(11, 8, 3)" />
+<rect x="768" y="0" width="64" height="64" fill="rgb(31, 23, 8)" />
+<rect x="832" y="0" width="64" height="64" fill="rgb(33, 25, 9)" />
+<rect x="896" y="0" width="64" height="64" fill="rgb(18, 14, 4)" />
+<rect x="960" y="0" width="64" height="64" fill="rgb(1, 0, 0)" />
+<rect x="1024" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1088" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1152" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1216" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1280" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1344" y="0" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="0" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="64" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="128" y="64" width="64" height="64" fill="rgb(2, 2, 0)" />
+<rect x="192" y="64" width="64" height="64" fill="rgb(98, 64, 13)" />
+<rect x="256" y="64" width="64" height="64" fill="rgb(162, 106, 22)" />
+<rect x="320" y="64" width="64" height="64" fill="rgb(124, 82, 17)" />
+<rect x="384" y="64" width="64" height="64" fill="rgb(27, 19, 4)" />
+<rect x="448" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="512" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="576" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="640" y="64" width="64" height="64" fill="rgb(10, 7, 2)" />
+<rect x="704" y="64" width="64" height="64" fill="rgb(49, 37, 14)" />
+<rect x="768" y="64" width="64" height="64" fill="rgb(53, 40, 16)" />
+<rect x="832" y="64" width="64" height="64" fill="rgb(60, 48, 23)" />
+<rect x="896" y="64" width="64" height="64" fill="rgb(51, 39, 15)" />
+<rect x="960" y="64" width="64" height="64" fill="rgb(23, 18, 6)" />
+<rect x="1024" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1088" y="64" width="64" height="64" fill="rgb(13, 10, 3)" />
+<rect x="1152" y="64" width="64" height="64" fill="rgb(24, 18, 6)" />
+<rect x="1216" y="64" width="64" height="64" fill="rgb(13, 10, 3)" />
+<rect x="1280" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1344" y="64" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="0" y="128" width="64" height="64" fill="rgb(1, 0, 0)" />
+<rect x="64" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="128" y="128" width="64" height="64" fill="rgb(61, 42, 8)" />
+<rect x="192" y="128" width="64" height="64" fill="rgb(194, 125, 25)" />
+<rect x="256" y="128" width="64" height="64" fill="rgb(172, 113, 24)" />
+<rect x="320" y="128" width="64" height="64" fill="rgb(201, 166, 99)" />
+<rect x="384" y="128" width="64" height="64" fill="rgb(136, 104, 47)" />
+<rect x="448" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="512" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="576" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="640" y="128" width="64" height="64" fill="rgb(8, 5, 1)" />
+<rect x="704" y="128" width="64" height="64" fill="rgb(120, 103, 65)" />
+<rect x="768" y="128" width="64" height="64" fill="rgb(218, 195, 138)" />
+<rect x="832" y="128" width="64" height="64" fill="rgb(213, 191, 134)" />
+<rect x="896" y="128" width="64" height="64" fill="rgb(76, 62, 33)" />
+<rect x="960" y="128" width="64" height="64" fill="rgb(33, 24, 9)" />
+<rect x="1024" y="128" width="64" height="64" fill="rgb(18, 12, 4)" />
+<rect x="1088" y="128" width="64" height="64" fill="rgb(80, 66, 36)" />
+<rect x="1152" y="128" width="64" height="64" fill="rgb(57, 45, 20)" />
+<rect x="1216" y="128" width="64" height="64" fill="rgb(50, 38, 14)" />
+<rect x="1280" y="128" width="64" height="64" fill="rgb(29, 22, 8)" />
+<rect x="1344" y="128" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="0" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="64" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="128" y="192" width="64" height="64" fill="rgb(101, 69, 16)" />
+<rect x="192" y="192" width="64" height="64" fill="rgb(162, 119, 47)" />
+<rect x="256" y="192" width="64" height="64" fill="rgb(188, 163, 107)" />
+<rect x="320" y="192" width="64" height="64" fill="rgb(228, 205, 149)" />
+<rect x="384" y="192" width="64" height="64" fill="rgb(121, 105, 67)" />
+<rect x="448" y="192" width="64" height="64" fill="rgb(3, 3, 0)" />
+<rect x="512" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="576" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="640" y="192" width="64" height="64" fill="rgb(4, 3, 1)" />
+<rect x="704" y="192" width="64" height="64" fill="rgb(95, 85, 57)" />
+<rect x="768" y="192" width="64" height="64" fill="rgb(214, 191, 137)" />
+<rect x="832" y="192" width="64" height="64" fill="rgb(227, 204, 145)" />
+<rect x="896" y="192" width="64" height="64" fill="rgb(202, 180, 125)" />
+<rect x="960" y="192" width="64" height="64" fill="rgb(68, 58, 37)" />
+<rect x="1024" y="192" width="64" height="64" fill="rgb(40, 29, 12)" />
+<rect x="1088" y="192" width="64" height="64" fill="rgb(207, 185, 127)" />
+<rect x="1152" y="192" width="64" height="64" fill="rgb(139, 122, 80)" />
+<rect x="1216" y="192" width="64" height="64" fill="rgb(70, 57, 30)" />
+<rect x="1280" y="192" width="64" height="64" fill="rgb(47, 35, 13)" />
+<rect x="1344" y="192" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="0" y="256" width="64" height="64" fill="rgb(1, 1, 0)" />
+<rect x="64" y="256" width="64" height="64" fill="rgb(43, 30, 6)" />
+<rect x="128" y="256" width="64" height="64" fill="rgb(169, 114, 29)" />
+<rect x="192" y="256" width="64" height="64" fill="rgb(213, 188, 130)" />
+<rect x="256" y="256" width="64" height="64" fill="rgb(248, 223, 162)" />
+<rect x="320" y="256" width="64" height="64" fill="rgb(220, 199, 145)" />
+<rect x="384" y="256" width="64" height="64" fill="rgb(81, 73, 50)" />
+<rect x="448" y="256" width="64" height="64" fill="rgb(62, 79, 23)" />
+<rect x="512" y="256" width="64" height="64" fill="rgb(59, 81, 24)" />
+<rect x="576" y="256" width="64" height="64" fill="rgb(61, 84, 25)" />
+<rect x="640" y="256" width="64" height="64" fill="rgb(55, 72, 22)" />
+<rect x="704" y="256" width="64" height="64" fill="rgb(66, 59, 38)" />
+<rect x="768" y="256" width="64" height="64" fill="rgb(141, 125, 84)" />
+<rect x="832" y="256" width="64" height="64" fill="rgb(188, 168, 118)" />
+<rect x="896" y="256" width="64" height="64" fill="rgb(131, 116, 76)" />
+<rect x="960" y="256" width="64" height="64" fill="rgb(6, 5, 1)" />
+<rect x="1024" y="256" width="64" height="64" fill="rgb(50, 39, 18)" />
+<rect x="1088" y="256" width="64" height="64" fill="rgb(215, 192, 132)" />
+<rect x="1152" y="256" width="64" height="64" fill="rgb(233, 208, 142)" />
+<rect x="1216" y="256" width="64" height="64" fill="rgb(203, 181, 122)" />
+<rect x="1280" y="256" width="64" height="64" fill="rgb(85, 71, 39)" />
+<rect x="1344" y="256" width="64" height="64" fill="rgb(12, 9, 3)" />
+<rect x="0" y="320" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="64" y="320" width="64" height="64" fill="rgb(84, 57, 12)" />
+<rect x="128" y="320" width="64" height="64" fill="rgb(165, 108, 23)" />
+<rect x="192" y="320" width="64" height="64" fill="rgb(182, 135, 57)" />
+<rect x="256" y="320" width="64" height="64" fill="rgb(219, 197, 142)" />
+<rect x="320" y="320" width="64" height="64" fill="rgb(200, 176, 121)" />
+<rect x="384" y="320" width="64" height="64" fill="rgb(49, 38, 13)" />
+<rect x="448" y="320" width="64" height="64" fill="rgb(118, 139, 76)" />
+<rect x="512" y="320" width="64" height="64" fill="rgb(188, 187, 162)" />
+<rect x="576" y="320" width="64" height="64" fill="rgb(150, 160, 116)" />
+<rect x="640" y="320" width="64" height="64" fill="rgb(156, 159, 126)" />
+<rect x="704" y="320" width="64" height="64" fill="rgb(49, 41, 17)" />
+<rect x="768" y="320" width="64" height="64" fill="rgb(156, 137, 90)" />
+<rect x="832" y="320" width="64" height="64" fill="rgb(140, 124, 83)" />
+<rect x="896" y="320" width="64" height="64" fill="rgb(179, 158, 105)" />
+<rect x="960" y="320" width="64" height="64" fill="rgb(125, 102, 50)" />
+<rect x="1024" y="320" width="64" height="64" fill="rgb(64, 49, 20)" />
+<rect x="1088" y="320" width="64" height="64" fill="rgb(203, 181, 121)" />
+<rect x="1152" y="320" width="64" height="64" fill="rgb(236, 210, 142)" />
+<rect x="1216" y="320" width="64" height="64" fill="rgb(175, 153, 100)" />
+<rect x="1280" y="320" width="64" height="64" fill="rgb(54, 41, 17)" />
+<rect x="1344" y="320" width="64" height="64" fill="rgb(27, 20, 7)" />
+<rect x="0" y="384" width="64" height="64" fill="rgb(1, 1, 0)" />
+<rect x="64" y="384" width="64" height="64" fill="rgb(131, 89, 19)" />
+<rect x="128" y="384" width="64" height="64" fill="rgb(168, 111, 25)" />
+<rect x="192" y="384" width="64" height="64" fill="rgb(192, 153, 82)" />
+<rect x="256" y="384" width="64" height="64" fill="rgb(220, 197, 141)" />
+<rect x="320" y="384" width="64" height="64" fill="rgb(158, 110, 33)" />
+<rect x="384" y="384" width="64" height="64" fill="rgb(41, 30, 7)" />
+<rect x="448" y="384" width="64" height="64" fill="rgb(93, 122, 45)" />
+<rect x="512" y="384" width="64" height="64" fill="rgb(127, 147, 87)" />
+<rect x="576" y="384" width="64" height="64" fill="rgb(102, 131, 55)" />
+<rect x="640" y="384" width="64" height="64" fill="rgb(132, 147, 72)" />
+<rect x="704" y="384" width="64" height="64" fill="rgb(235, 187, 93)" />
+<rect x="768" y="384" width="64" height="64" fill="rgb(217, 177, 92)" />
+<rect x="832" y="384" width="64" height="64" fill="rgb(216, 185, 115)" />
+<rect x="896" y="384" width="64" height="64" fill="rgb(224, 183, 101)" />
+<rect x="960" y="384" width="64" height="64" fill="rgb(250, 197, 99)" />
+<rect x="1024" y="384" width="64" height="64" fill="rgb(231, 183, 91)" />
+<rect x="1088" y="384" width="64" height="64" fill="rgb(87, 73, 36)" />
+<rect x="1152" y="384" width="64" height="64" fill="rgb(172, 154, 100)" />
+<rect x="1216" y="384" width="64" height="64" fill="rgb(174, 157, 106)" />
+<rect x="1280" y="384" width="64" height="64" fill="rgb(54, 51, 36)" />
+<rect x="1344" y="384" width="64" height="64" fill="rgb(5, 3, 1)" />
+<rect x="0" y="448" width="64" height="64" fill="rgb(9, 7, 1)" />
+<rect x="64" y="448" width="64" height="64" fill="rgb(198, 126, 29)" />
+<rect x="128" y="448" width="64" height="64" fill="rgb(230, 144, 33)" />
+<rect x="192" y="448" width="64" height="64" fill="rgb(172, 114, 27)" />
+<rect x="256" y="448" width="64" height="64" fill="rgb(218, 148, 53)" />
+<rect x="320" y="448" width="64" height="64" fill="rgb(234, 148, 36)" />
+<rect x="384" y="448" width="64" height="64" fill="rgb(99, 70, 17)" />
+<rect x="448" y="448" width="64" height="64" fill="rgb(75, 104, 29)" />
+<rect x="512" y="448" width="64" height="64" fill="rgb(93, 138, 40)" />
+<rect x="576" y="448" width="64" height="64" fill="rgb(93, 136, 40)" />
+<rect x="640" y="448" width="64" height="64" fill="rgb(121, 134, 49)" />
+<rect x="704" y="448" width="64" height="64" fill="rgb(112, 123, 45)" />
+<rect x="768" y="448" width="64" height="64" fill="rgb(213, 172, 84)" />
+<rect x="832" y="448" width="64" height="64" fill="rgb(250, 197, 98)" />
+<rect x="896" y="448" width="64" height="64" fill="rgb(250, 197, 98)" />
+<rect x="960" y="448" width="64" height="64" fill="rgb(232, 185, 93)" />
+<rect x="1024" y="448" width="64" height="64" fill="rgb(250, 198, 99)" />
+<rect x="1088" y="448" width="64" height="64" fill="rgb(139, 129, 89)" />
+<rect x="1152" y="448" width="64" height="64" fill="rgb(165, 154, 107)" />
+<rect x="1216" y="448" width="64" height="64" fill="rgb(122, 128, 107)" />
+<rect x="1280" y="448" width="64" height="64" fill="rgb(98, 121, 120)" />
+<rect x="1344" y="448" width="64" height="64" fill="rgb(67, 78, 71)" />
+<rect x="0" y="512" width="64" height="64" fill="rgb(63, 42, 9)" />
+<rect x="64" y="512" width="64" height="64" fill="rgb(244, 149, 33)" />
+<rect x="128" y="512" width="64" height="64" fill="rgb(224, 140, 32)" />
+<rect x="192" y="512" width="64" height="64" fill="rgb(225, 140, 31)" />
+<rect x="256" y="512" width="64" height="64" fill="rgb(243, 148, 33)" />
+<rect x="320" y="512" width="64" height="64" fill="rgb(217, 135, 30)" />
+<rect x="384" y="512" width="64" height="64" fill="rgb(165, 130, 60)" />
+<rect x="448" y="512" width="64" height="64" fill="rgb(123, 136, 79)" />
+<rect x="512" y="512" width="64" height="64" fill="rgb(132, 153, 84)" />
+<rect x="576" y="512" width="64" height="64" fill="rgb(133, 154, 86)" />
+<rect x="640" y="512" width="64" height="64" fill="rgb(128, 141, 83)" />
+<rect x="704" y="512" width="64" height="64" fill="rgb(143, 148, 89)" />
+<rect x="768" y="512" width="64" height="64" fill="rgb(206, 172, 108)" />
+<rect x="832" y="512" width="64" height="64" fill="rgb(250, 196, 97)" />
+<rect x="896" y="512" width="64" height="64" fill="rgb(250, 197, 98)" />
+<rect x="960" y="512" width="64" height="64" fill="rgb(223, 178, 90)" />
+<rect x="1024" y="512" width="64" height="64" fill="rgb(251, 199, 100)" />
+<rect x="1088" y="512" width="64" height="64" fill="rgb(159, 149, 105)" />
+<rect x="1152" y="512" width="64" height="64" fill="rgb(94, 112, 107)" />
+<rect x="1216" y="512" width="64" height="64" fill="rgb(101, 127, 128)" />
+<rect x="1280" y="512" width="64" height="64" fill="rgb(97, 120, 118)" />
+<rect x="1344" y="512" width="64" height="64" fill="rgb(100, 125, 125)" />
+<rect x="0" y="576" width="64" height="64" fill="rgb(124, 84, 23)" />
+<rect x="64" y="576" width="64" height="64" fill="rgb(234, 145, 33)" />
+<rect x="128" y="576" width="64" height="64" fill="rgb(218, 137, 31)" />
+<rect x="192" y="576" width="64" height="64" fill="rgb(244, 148, 33)" />
+<rect x="256" y="576" width="64" height="64" fill="rgb(244, 148, 33)" />
+<rect x="320" y="576" width="64" height="64" fill="rgb(216, 135, 31)" />
+<rect x="384" y="576" width="64" height="64" fill="rgb(193, 161, 112)" />
+<rect x="448" y="576" width="64" height="64" fill="rgb(206, 191, 165)" />
+<rect x="512" y="576" width="64" height="64" fill="rgb(207, 192, 166)" />
+<rect x="576" y="576" width="64" height="64" fill="rgb(197, 185, 158)" />
+<rect x="640" y="576" width="64" height="64" fill="rgb(207, 192, 166)" />
+<rect x="704" y="576" width="64" height="64" fill="rgb(207, 193, 166)" />
+<rect x="768" y="576" width="64" height="64" fill="rgb(193, 180, 154)" />
+<rect x="832" y="576" width="64" height="64" fill="rgb(231, 183, 91)" />
+<rect x="896" y="576" width="64" height="64" fill="rgb(250, 197, 98)" />
+<rect x="960" y="576" width="64" height="64" fill="rgb(212, 173, 92)" />
+<rect x="1024" y="576" width="64" height="64" fill="rgb(226, 198, 126)" />
+<rect x="1088" y="576" width="64" height="64" fill="rgb(133, 136, 110)" />
+<rect x="1152" y="576" width="64" height="64" fill="rgb(95, 117, 115)" />
+<rect x="1216" y="576" width="64" height="64" fill="rgb(102, 129, 130)" />
+<rect x="1280" y="576" width="64" height="64" fill="rgb(96, 119, 118)" />
+<rect x="1344" y="576" width="64" height="64" fill="rgb(102, 129, 130)" />
+<rect x="0" y="640" width="64" height="64" fill="rgb(117, 104, 70)" />
+<rect x="64" y="640" width="64" height="64" fill="rgb(216, 190, 129)" />
+<rect x="128" y="640" width="64" height="64" fill="rgb(223, 141, 33)" />
+<rect x="192" y="640" width="64" height="64" fill="rgb(244, 149, 33)" />
+<rect x="256" y="640" width="64" height="64" fill="rgb(244, 149, 34)" />
+<rect x="320" y="640" width="64" height="64" fill="rgb(193, 144, 66)" />
+<rect x="384" y="640" width="64" height="64" fill="rgb(186, 169, 129)" />
+<rect x="448" y="640" width="64" height="64" fill="rgb(206, 191, 165)" />
+<rect x="512" y="640" width="64" height="64" fill="rgb(206, 192, 165)" />
+<rect x="576" y="640" width="64" height="64" fill="rgb(127, 127, 97)" />
+<rect x="640" y="640" width="64" height="64" fill="rgb(193, 180, 154)" />
+<rect x="704" y="640" width="64" height="64" fill="rgb(206, 192, 165)" />
+<rect x="768" y="640" width="64" height="64" fill="rgb(202, 188, 161)" />
+<rect x="832" y="640" width="64" height="64" fill="rgb(179, 152, 90)" />
+<rect x="896" y="640" width="64" height="64" fill="rgb(209, 173, 95)" />
+<rect x="960" y="640" width="64" height="64" fill="rgb(220, 188, 112)" />
+<rect x="1024" y="640" width="64" height="64" fill="rgb(243, 213, 136)" />
+<rect x="1088" y="640" width="64" height="64" fill="rgb(124, 132, 112)" />
+<rect x="1152" y="640" width="64" height="64" fill="rgb(93, 113, 110)" />
+<rect x="1216" y="640" width="64" height="64" fill="rgb(102, 129, 130)" />
+<rect x="1280" y="640" width="64" height="64" fill="rgb(96, 119, 117)" />
+<rect x="1344" y="640" width="64" height="64" fill="rgb(102, 129, 130)" />
+<rect x="0" y="704" width="64" height="64" fill="rgb(125, 111, 76)" />
+<rect x="64" y="704" width="64" height="64" fill="rgb(244, 219, 156)" />
+<rect x="128" y="704" width="64" height="64" fill="rgb(225, 198, 135)" />
+<rect x="192" y="704" width="64" height="64" fill="rgb(224, 185, 113)" />
+<rect x="256" y="704" width="64" height="64" fill="rgb(224, 189, 117)" />
+<rect x="320" y="704" width="64" height="64" fill="rgb(205, 184, 126)" />
+<rect x="384" y="704" width="64" height="64" fill="rgb(159, 145, 107)" />
+<rect x="448" y="704" width="64" height="64" fill="rgb(206, 192, 165)" />
+<rect x="512" y="704" width="64" height="64" fill="rgb(176, 163, 138)" />
+<rect x="576" y="704" width="64" height="64" fill="rgb(169, 156, 131)" />
+<rect x="640" y="704" width="64" height="64" fill="rgb(172, 158, 134)" />
+<rect x="704" y="704" width="64" height="64" fill="rgb(189, 175, 149)" />
+<rect x="768" y="704" width="64" height="64" fill="rgb(207, 192, 166)" />
+<rect x="832" y="704" width="64" height="64" fill="rgb(153, 135, 89)" />
+<rect x="896" y="704" width="64" height="64" fill="rgb(176, 153, 90)" />
+<rect x="960" y="704" width="64" height="64" fill="rgb(155, 135, 81)" />
+<rect x="1024" y="704" width="64" height="64" fill="rgb(118, 103, 63)" />
+<rect x="1088" y="704" width="64" height="64" fill="rgb(52, 60, 53)" />
+<rect x="1152" y="704" width="64" height="64" fill="rgb(54, 65, 61)" />
+<rect x="1216" y="704" width="64" height="64" fill="rgb(54, 66, 63)" />
+<rect x="1280" y="704" width="64" height="64" fill="rgb(52, 63, 60)" />
+<rect x="1344" y="704" width="64" height="64" fill="rgb(54, 67, 65)" />
+<rect x="0" y="768" width="64" height="64" fill="rgb(8, 7, 2)" />
+<rect x="64" y="768" width="64" height="64" fill="rgb(49, 43, 27)" />
+<rect x="128" y="768" width="64" height="64" fill="rgb(52, 46, 29)" />
+<rect x="192" y="768" width="64" height="64" fill="rgb(39, 34, 20)" />
+<rect x="256" y="768" width="64" height="64" fill="rgb(37, 33, 19)" />
+<rect x="320" y="768" width="64" height="64" fill="rgb(10, 8, 3)" />
+<rect x="384" y="768" width="64" height="64" fill="rgb(38, 34, 20)" />
+<rect x="448" y="768" width="64" height="64" fill="rgb(194, 180, 154)" />
+<rect x="512" y="768" width="64" height="64" fill="rgb(199, 185, 159)" />
+<rect x="576" y="768" width="64" height="64" fill="rgb(202, 189, 163)" />
+<rect x="640" y="768" width="64" height="64" fill="rgb(207, 193, 167)" />
+<rect x="704" y="768" width="64" height="64" fill="rgb(207, 193, 167)" />
+<rect x="768" y="768" width="64" height="64" fill="rgb(207, 193, 166)" />
+<rect x="832" y="768" width="64" height="64" fill="rgb(147, 135, 109)" />
+<rect x="896" y="768" width="64" height="64" fill="rgb(98, 89, 68)" />
+<rect x="960" y="768" width="64" height="64" fill="rgb(7, 7, 1)" />
+<rect x="1024" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1088" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1152" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1216" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1280" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+<rect x="1344" y="768" width="64" height="64" fill="rgb(0, 0, 0)" />
+</svg>
+        <!-- Final PNG Image -->
+        <img src="brainstorm.png" class="final-png" alt="AI demo" />
+    </div>
+
+    <div class="paragraph dimmed">
+        We've been brainstorming with AI for months.<br />
+        Then we thought... what if we let it build a demo?
+    </div>
+
+    <div class="paragraph dimmed" style="margin-top: 1rem">
+        Well — it did. <a class="highlight" href="/app.html">Here’s the result.</a><br />
+        Coded 100% by AI. With quirks and all.
+    </div>
+
+    <p class="note-line">
+        <em><strong>☝️ Note:</strong> the real product will be nothing like that 🤖-crafted 💩</em>
+    </p>
+
+
+
+    <footer>© 2025 <a href="https://aicademy.org" class="highlight">aicademy.org</a></footer>
+
+    <script>
+        function handleImageLoad(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const pngImage = container.querySelector('img.final-png');
+            if (!pngImage) return;
+
+            // Check if the image is already loaded (cached)
+            if (pngImage.complete && pngImage.naturalHeight !== 0) {
+                container.classList.add('loaded');
+            } else {
+                // Add load listener
+                pngImage.addEventListener('load', () => {
+                    container.classList.add('loaded'); 
+                });
+                // Optional: Add error listener
+                pngImage.addEventListener('error', () => {
+                    console.error(`Failed to load image: ${pngImage.src}`);
+                    // Decide how to handle error, maybe remove SVG or show alt text
+                });
+            }
+        }
+
+        // Initialize for both images
+        handleImageLoad('logo-container');
+        handleImageLoad('illustration-container');
+
+        // Handle page overlay fade out
+        window.addEventListener('load', () => {
+            const overlay = document.getElementById('page-overlay');
+            if (overlay) {
+                // Start fade out
+                overlay.classList.add('fade-out');
+
+                // Remove overlay after transition completes (1500ms)
+                setTimeout(() => {
+                    overlay.remove();
+                }, 1500);
+            }
+        });
+    </script>
 </body>
+
 </html>
