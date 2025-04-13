@@ -265,7 +265,7 @@ export default function DragDropGame({
               : `text-white bg-brand-green hover:bg-brand-green-dark`
           }`}
         >
-          {checked ? 'Đã kiểm tra' : 'Kiểm tra kết quả'}
+          {checked ? 'Checked' : 'Check'}
         </button>
 
         {checked && (
@@ -277,8 +277,8 @@ export default function DragDropGame({
             }`}
           >
             {isCorrect
-              ? (mode === 'reading' ? '✅ Tuyệt! Ấn Next để đi tiếp.' : '✅ Tuyệt! Ấn Continue để đi tiếp.')
-              : '❌ Chưa đúng, hãy thử lại.'}
+              ? (mode === 'reading' ? '✅ Great! Click Next to continue.' : '✅ Great! Click Continue.')
+              : "❌ Incorrect, let's try again."}
           </span>
         )}
       </div>

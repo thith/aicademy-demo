@@ -211,7 +211,7 @@ export default function CatchOriginGame({
             setTimeout(() => setBasketHighlight(null), 300);
             if (correctCountRef.current >= winningThreshold) {
               setGameOver(true);
-              setMessage('🎉 Bạn đã phân loại đúng tất cả!');
+              setMessage('🎉 You caught all the items correctly!');
               setTimeout(() => onComplete(true), 0);
             }
             setAllItems((prev) =>
@@ -226,7 +226,7 @@ export default function CatchOriginGame({
             if (!gameOver) {
               hasWrong = true;
               setGameOver(true);
-              setMessage(`Sai rồi! ${item.name} là của ${item.basket}.`);
+              setMessage(`Oops! ${item.name} belongs in ${item.basket} basket.`);
               setBasketHighlight({ index: basketIndex, type: 'wrong' });
               setTimeout(() => setBasketHighlight(null), 300);
               setAllItems((prev) =>
@@ -370,7 +370,7 @@ export default function CatchOriginGame({
                   : 'bg-red-600 hover:bg-red-700 text-white'
               }`}
             >
-              Thử lại
+              Play Again
             </button>
           </div>
         )}
@@ -379,8 +379,8 @@ export default function CatchOriginGame({
       {/* Game info instructions - styled for better mobile display */}
       <div className="mt-2 grid grid-cols-1 sm:flex sm:justify-between items-center text-xs">
         <div className="bg-gray-100 rounded-lg p-2 text-gray-600 w-full">
-          <span className="hidden sm:inline">👉 Dùng phím mũi tên trên bàn phím để di chuyển giỏ ổn định hơn</span>
-          <span className="sm:hidden">👉 Tap vào điểm trên màn hình để gióng giỏ USA theo đó.</span>
+          <span className="hidden sm:inline">👉 Use left/right arrow keys on your keyboard for better control</span>
+          <span className="sm:hidden">👉 Tap anywhere to align the middle basket</span>
         </div>
       </div>
     </>

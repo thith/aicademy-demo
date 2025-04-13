@@ -183,7 +183,7 @@ const lessonContent = [
   { type: 'page-break', title: 'Trắc nghiệm' },
   {
     type: 'quiz',
-    title: 'Trắc nghiệm',
+    title: 'Quiz time!',
     questions: [
       {
         question: "Câu 1: AI hiện đại có thể làm gì trên thực tế?",

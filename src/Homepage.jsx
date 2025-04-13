@@ -6,7 +6,9 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
     <div className="flex flex-col items-center justify-center min-h-screen font-sans p-4">
       <div className="max-w-[800px] mx-auto bg-gradient-to-b from-[#f9fefc] to-[#e5f5ee] rounded-2xl shadow-md p-8 md:p-12">
         {/* AIcademy Logo */}
-        <img src="/aicademy-logo.png" alt="AIcademy Logo" className="w-48 mb-8 mx-auto" />
+        <a href="https://aicademy.org" target="_blank" rel="noopener noreferrer">
+          <img src="/aicademy-logo.png" alt="AIcademy Logo" className="w-48 mb-8 mx-auto" />
+        </a>
 
         {/* Course Title */}
         <h1 className="text-3xl font-bold text-center mb-2">

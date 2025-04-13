@@ -316,7 +316,6 @@ function App() {
               case 'quiz':
                 return (
                   <div key={idx} className="my-6">
-                    <h4 className="text-md font-semibold mb-3 text-brand-gray-dark">{item.title}</h4>
                     <div className="relative">
                       {quizCompletedAndNext && (
                         <>

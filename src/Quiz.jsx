@@ -143,7 +143,7 @@ export default function Quiz({ title, questions, onCorrect, mode = 'reading', ex
              isDarkMode ? 'disabled:bg-gray-600' : 'disabled:bg-gray-300 disabled:text-gray-500' // Added disabled text color for light mode
           }`}
         >
-          {isCorrectOverall ? 'Đã hoàn thành ✅' : (checked ? 'Thử lại?' : 'Kiểm tra kết quả')}
+          {isCorrectOverall ? 'Completed ✅' : (checked ? 'Try again?' : 'Check')}
         </button>
       </div>
     </div>
