@@ -34,16 +34,16 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
           <button
-            onClick={onStartCourse}
+            onClick={onStartTheaterMode}
             className="px-8 py-3 bg-brand-green hover:bg-brand-green-dark text-white rounded-lg shadow-sm font-semibold"
           >
             Start Course
           </button>
           <button
-            onClick={onStartTheaterMode}
+            onClick={onStartCourse}
             className="px-8 py-3 bg-white border-2 border-brand-green hover:bg-brand-green-light text-brand-green-dark rounded-lg shadow-sm font-semibold"
           >
-            Start in Theater Mode
+            Start in Reading Mode
           </button>
         </div>
 

@@ -42,7 +42,7 @@ function App() {
     const calculatedPages = [];
     const titles = [];
     let currentPageItems = [];
-    let nextPageTitle = 'AI là gì?'; // Default title for the first page
+    let nextPageTitle = ''; // Empty title for the first page
 
     mockContent.forEach(item => {
       if (item.type === 'page-break') {
@@ -64,7 +64,7 @@ function App() {
 
     if (calculatedPages.length === 0) {
       calculatedPages.push([]);
-      titles.push('AI là gì?');
+      titles.push('');
     }
 
     return { pages: calculatedPages, pageTitles: titles };

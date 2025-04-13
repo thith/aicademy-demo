@@ -1,6 +1,10 @@
 import { Logos } from './Logos.jsx';
 
 const lessonContent = [
+  { 
+    type: 'page-break', 
+    title: 'AI là gì?' 
+  },
   {
     type: 'voiced-text',
     src: '/p1.mp3',

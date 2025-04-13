@@ -214,7 +214,7 @@ export default function DragDropGame({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Source Container */}
           <div className={`p-0 sm:p-4 rounded-lg min-h-[10rem] flex flex-col ${isDarkMode ? 'bg-gray-700' : 'bg-brand-gray-light'}`}>
-            <DroppableCategory id="source" name="Kéo từ đây" isDarkMode={isDarkMode}>
+            <DroppableCategory id="source" name="Start dragging here" isDarkMode={isDarkMode}>
               <SortableContext items={containers.source} strategy={rectSortingStrategy}>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {containers.source.map((itemId) => {

@@ -181,7 +181,7 @@ export default function CatchOriginGame({
           if (!gameOver) {
             hasWrong = true;
             setGameOver(true);
-            setMessage(`Bạn đã để rơi mất ${item.name} (${item.basket})!`);
+            setMessage(`Oops! You missed ${item.name} (${item.basket})!`);
             setAllItems((prev) =>
               prev
                 .map((f) => (f.id === item.id ? { ...f, status: 'wrong' } : f))

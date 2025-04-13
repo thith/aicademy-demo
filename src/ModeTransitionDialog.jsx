@@ -11,20 +11,21 @@ export default function ModeTransitionDialog({
 
   // Determine text based on which mode we're transitioning to
   const title = targetMode === 'presentation' 
-    ? 'Chuyển sang chế độ trình chiếu' 
-    : 'Quay lại chế độ đọc';
-  
-  const description = targetMode === 'presentation'
-    ? 'Bạn có muốn tiếp tục từ vị trí hiện tại hay bắt đầu lại từ đầu?'
-    : 'Bạn có muốn giữ tiến độ hiện tại hay quay lại trang đang xem trước đó?';
+  ? 'Switch to Theater Mode' 
+  : 'Back to Reading Mode';
 
-  const continueText = targetMode === 'presentation'
-    ? 'Tiếp tục từ vị trí hiện tại'
-    : 'Giữ tiến độ hiện tại';
+const description = targetMode === 'presentation'
+  ? 'Continue where you left off or start over?'
+  : 'Keep progress or go back?';
 
-  const startOverText = targetMode === 'presentation'
-    ? 'Bắt đầu lại từ đầu'
-    : 'Quay lại trang trước đó';
+const continueText = targetMode === 'presentation'
+  ? 'Continue here'
+  : 'Keep progress';
+
+const startOverText = targetMode === 'presentation'
+  ? 'Start over'
+  : 'Go back';
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
