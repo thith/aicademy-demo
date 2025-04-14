@@ -20,17 +20,18 @@ This repository is a **technology demo and experimental playground** for the [ai
 ## 🌐 Live Demo
 
 Try it out here (hosted on Netlify):  
-**https://aicademy-demo.netlify.app**
+**https://ideas.aicademy.org**
 
 ---
 
-## 🤖 AI Models Used
+## 🤖 AI Models Used (via OpenRouter)
 
-- **Quasar Alpha** (free) — *primary model for code generation*
-- **Gemini 2.5 Pro** (free)
-- **DeepSeek V3** (free)
-- **Llama 4 Maverick** (free)
-- **Claude Sonnet 3.7** (paid)
+- **openrouter:quasar-alpha** (free but not so labeled)
+- **deepseek/deepseek-chat-v3-0324:free**
+- **meta-llama/llama-4-maverick:free**
+- **google/gemini-2.5-pro-exp-03-25:free**
+- **anthropic/claude-3.7-sonnet** (paid)
+- **google/gemini-2.5-pro-preview-03-25** (paid)
 
 ---
 

@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import SyllabusPopup from './SyllabusPopup';
 
 export default function Homepage({ onStartCourse, onStartTheaterMode }) {
+  const [showSyllabus, setShowSyllabus] = useState(false);
   return (
     // Centered container with gradient background
     <div className="flex flex-col items-center justify-center min-h-screen font-sans p-4">
       <div className="max-w-[800px] mx-auto bg-gradient-to-b from-[#f9fefc] to-[#e5f5ee] rounded-2xl shadow-md p-8 md:p-12">
         {/* AIcademy Logo */}
-        <a href="https://aicademy.org" target="_blank" rel="noopener noreferrer">
+        <a href="https://ideas.aicademy.org">
           <img src="/aicademy-logo.png" alt="AIcademy Logo" className="w-48 mb-8 mx-auto" />
         </a>
 
@@ -26,7 +28,7 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
 
         {/* Course Info - Simplified styling with separator and grey text */}
         <div className="flex items-center justify-center gap-2 mb-8 text-gray-500 text-xs">
-          <span>Author: aicademy team</span>
+          <span>By: aicademy team</span>
           <span className="text-gray-400">•</span>
           <span>Level: Beginner</span>
         </div>
@@ -48,9 +50,17 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
         </div>
 
         {/* Syllabus Link */}
-        <a href="#" className="text-brand-green hover:text-brand-green-dark mb-8 block text-center">
+        <button 
+          onClick={() => setShowSyllabus(true)}
+          className="text-brand-green hover:text-brand-green-dark mb-8 block text-center mx-auto"
+        >
           View Syllabus →
-        </a>
+        </button>
+        
+        <SyllabusPopup 
+          isOpen={showSyllabus}
+          onClose={() => setShowSyllabus(false)}
+        />
 
       </div>
     </div>
