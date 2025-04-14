@@ -92,3 +92,48 @@ Style and hover states should match buttons used in other parts of the platform.
 - Layout should be responsive and mobile-friendly where applicable.
 
 Let me know if you need clarifications or component breakdowns.
+
+======
+Syllabus Popup:
+
+---
+
+Create a smooth animated popup that opens when users click “View Syllabus →”.
+
+Requirements:
+- Include a close button (×) at the top-right.
+- On mobile or small screens, the popup must cover full width and full height (100vw / 100vh) with no excessive padding/margin — prioritize usable space.
+- On larger screens, keep it centered with a max-width and rounded corners.
+- The popup content must be scrollable vertically if it exceeds screen height.
+- Use subtle transition effects when opening and closing.
+- Layout should be clean and readable: bold section titles, enough spacing between blocks, and good text contrast.
+
+Popup content:
+---
+
+Course Syllabus
+Understanding and Applying AI to Study and Work
+
+1. What even is AI?
+No fluff. Just the core: how machines “think” and why it matters.
+
+2. Generative AI — The Spark of a New Era
+From text to images to code. This tech isn’t just trending — it’s rewriting the rules.
+
+3. The Edge of Intelligence
+Agents. Robotics. Autonomous systems. Welcome to the frontlines of AI.
+
+4. Do It With AI
+Study smarter. Work faster. Create more.
+We’ll show you tools to chat, learn, code, draw, edit, compose — and automate.
+
+Featured tools:
+- ChatGPT – creative, research, and design wingman
+- NotebookLM – study and research assistant
+- n8n – automate workflows with no-code + AI
+
+5. Prompt Like a Pro
+Tips and hacks to make AI actually useful.
+
+6. The AI Mindset
+AI is not here to replace you — it’s here to free you.
