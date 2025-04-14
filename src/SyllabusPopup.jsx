@@ -24,7 +24,7 @@ export default function SyllabusPopup({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-black bg-opacity-30 backdrop-blur-sm transition-opacity duration-200">
       <div
         ref={popupRef}
-        className="relative bg-white sm:rounded-2xl shadow-xl h-[100vh] sm:h-auto sm:max-h-[90vh] w-[100vw] sm:w-full sm:max-w-3xl overflow-hidden opacity-0 scale-95 transition-all duration-300 transform"
+        className="relative bg-white sm:rounded-2xl shadow-xl h-[100vh] w-[100vw] sm:w-full sm:max-w-3xl sm:max-h-[90vh] overflow-hidden opacity-0 scale-95 transition-all duration-300"
       >
         <button 
           onClick={onClose}
@@ -34,7 +34,7 @@ export default function SyllabusPopup({ isOpen, onClose }) {
           &times;
         </button>
         
-        <div className="overflow-y-auto h-full sm:max-h-[80vh] p-4 sm:p-6 md:p-8">
+        <div className="overflow-y-auto h-full p-4 sm:p-6 md:p-8">
           <div className="flex flex-col gap-4 mb-6">
             <div className="bg-brand-green rounded-full px-2 py-0.5 w-fit flex items-center">
               <span className="text-white text-[10px] font-semibold uppercase tracking-wide">Syllabus</span>
