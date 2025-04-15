@@ -1,10 +1,13 @@
-import lessonContent from './lessonContent.js';
+import lessonContentEn from './lessonContent.en.js';
+import lessonContentVi from './lessonContent.vi.js';
 
 const isDebugMode = window.location.search.includes('?d');
 
-export function getLessonContent() {
+export function getLessonContent(lang = 'en') {
+  const content = lang === 'vi' ? [...lessonContentVi] : [...lessonContentEn];
+  
   if (isDebugMode) {
-    lessonContent.forEach((item) => {
+    content.forEach((item) => {
       if (item.type === 'game' && item.gameType === 'drag-drop') {
         item.items.length = 1
         item.categories.length = 1;
@@ -17,7 +20,7 @@ export function getLessonContent() {
       }
     });
   }
-  return lessonContent;
+  return content;
 }
 
 export function getPresentationSpeed() {

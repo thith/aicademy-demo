@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Homepage from './Homepage';
 import DragDropGame from './DragDropGame';
 import Quiz from './Quiz';
 import PresentationOverlay from './PresentationOverlay';
 import ModeTransitionDialog from './ModeTransitionDialog';
 import CatchOriginGame from './CatchOriginGame';
+import LanguagePopup from './LanguagePopup';
 
 import { getLessonContent } from './config.js';
-
-const mockContent = getLessonContent();
 
 function App() {
   const [isCourseStarted, setIsCourseStarted] = useState(false);
@@ -26,25 +25,45 @@ function App() {
   const [showModeDialog, setShowModeDialog] = useState(false);
   const [targetMode, setTargetMode] = useState('reading');
   const [previousPage, setPreviousPage] = useState(0);
+  const [showLanguagePopup, setShowLanguagePopup] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [content, setContent] = useState([]); // Initialize empty, will be set when language selected
+  const [startingTheaterMode, setStartingTheaterMode] = useState(false);
+  const [isContentLoading, setIsContentLoading] = useState(false);
+  const contentRef = useRef(content);
+
+  const handleLanguageSelect = async (language) => {
+    console.log('Language selected:', language);
+    setIsContentLoading(true);
+    const newContent = getLessonContent(language);
+    console.log('Loaded content:', newContent);
+    setSelectedLanguage(language);
+    setContent(newContent);
+    contentRef.current = newContent;
+    setShowLanguagePopup(false);
+    setIsContentLoading(false);
+    return newContent;
+  };
 
   const handleStartCourse = () => {
-    setIsCourseStarted(true);
+    setShowLanguagePopup(true);
+    setStartingTheaterMode(false);
+  };
+
+  const handleStartTheaterMode = async () => {
+    setShowLanguagePopup(true);
+    setStartingTheaterMode(true);
     setPresentationMode(false);
   };
 
-  const handleStartTheaterMode = () => {
-    setIsCourseStarted(true);
-    setPresentationMode(true);
-  };
-
-  // Recalculate pages and page titles based on lessonContent
+  // Recalculate pages and page titles based on content
   const { pages, pageTitles } = useMemo(() => {
     const calculatedPages = [];
     const titles = [];
     let currentPageItems = [];
     let nextPageTitle = ''; // Empty title for the first page
 
-    mockContent.forEach(item => {
+    content.forEach(item => {
       if (item.type === 'page-break') {
         if (currentPageItems.length > 0) {
           calculatedPages.push(currentPageItems);
@@ -68,7 +87,7 @@ function App() {
     }
 
     return { pages: calculatedPages, pageTitles: titles };
-  }, [mockContent]);
+  }, [content]);
 
   // Recalculate flatSentences and mediaMap for Presentation Mode
   const { flatSentences, mediaMap } = useMemo(() => {
@@ -76,7 +95,7 @@ function App() {
     const map = {};
     let counter = 0; // Global sentence/item counter
 
-    mockContent.forEach((item) => {
+    content.forEach((item) => {
       if (item.type === 'paragraph' || item.type === 'highlight') {
         if (item.title && item.type === 'highlight') {
            sentences.push(item.title);
@@ -158,7 +177,7 @@ function App() {
       // Ignore page-break type
     });
     return { flatSentences: sentences, mediaMap: map };
-  }, [mockContent]); // Dependency remains mockContent
+  }, [content]); // Dependency is now the selected language content
 
   const handleNext = () => {
     setShouldPulse(false);
@@ -213,10 +232,41 @@ function App() {
 
   if (!isCourseStarted) {
     return (
-      <Homepage
-        onStartCourse={handleStartCourse}
-        onStartTheaterMode={handleStartTheaterMode}
-      />
+      <>
+        <Homepage
+          onStartCourse={handleStartCourse}
+          onStartTheaterMode={handleStartTheaterMode}
+        />
+        <LanguagePopup
+          isOpen={showLanguagePopup}
+          onClose={() => setShowLanguagePopup(false)}
+            onLanguageSelect={async (language) => {
+              console.log('LanguagePopup - language selected:', language);
+              const newContent = await handleLanguageSelect(language);
+              console.log('Content after selection:', newContent.length);
+              
+              // Wait for content state to fully update
+              await new Promise(resolve => {
+                const checkContent = () => {
+                  if (contentRef.current.length > 0) {
+                    resolve();
+                  } else {
+                    setTimeout(checkContent, 10);
+                  }
+                };
+                checkContent();
+              });
+
+              setIsCourseStarted(true);
+              if (startingTheaterMode) {
+                console.log('Initializing theater mode with language:', language, 'Content length:', contentRef.current.length);
+                setPresentationMode(true);
+                window.initialSentenceIndex = 0;
+                setCurrentPage(0);
+              }
+            }}
+        />
+      </>
     );
   }
 
@@ -371,6 +421,7 @@ function App() {
 
       {presentationMode && (
         <PresentationOverlay
+          content={content}
           isVisible={presentationMode}
           shouldPulse={shouldPulse}
           pulseKey={pulseKey}

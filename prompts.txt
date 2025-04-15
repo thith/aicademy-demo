@@ -137,3 +137,34 @@ Tips and hacks to make AI actually useful.
 
 6. The AI Mindset
 AI is not here to replace you — it’s here to free you.
+
+===========
+Multi-language Support
+---
+
+**Add a language selection popup before starting the course.**
+
+- When the user clicks **“Start Course”** or **“Start in Reading Mode”** on the homepage, show a **modal popup** asking them to select a language.
+
+**Popup requirements:**
+- Must include **two language options**:
+  - **English** with a **US flag icon**  
+  - **Tiếng Việt** with a **Vietnamese flag icon**
+- Each option should be styled as a **large clickable button** with:
+  - A flag icon on the left
+  - The language name on the right
+  - Good spacing and padding for mobile responsiveness
+- Allow selection via click or tap. After selection:
+  - Save the chosen language to global state (e.g., context or store)
+  - Load the corresponding content file:  
+    - `lessonContent.en.js` for English  
+    - `lessonContent.vi.js` for Vietnamese
+  - Proceed to the lesson screen
+
+**Rules:**
+- **Language cannot be changed mid-lesson**.  
+- If the user wants to switch language, they must return to the homepage and start again.  
+- Language selection must persist across reading mode and presentation mode.  
+- Default to showing the popup again if no language is selected yet.
+
+You can use flag icons from an emoji set, SVGs, or a small image sprite — whatever fits best with the current UI setup.

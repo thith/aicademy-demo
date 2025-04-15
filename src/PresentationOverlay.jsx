@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DragDropGame from './DragDropGame';
 import CatchOriginGame from './CatchOriginGame';
-import { getPresentationSpeed, getLessonContent } from './config.js'; // Import getLessonContent
+import { getPresentationSpeed } from './config.js';
 
 // Helper to find the block index, paragraph index, and sentence index within that block
 const findBlockAndSentenceIndex = (globalSentenceIndex, lessonContent) => {
@@ -90,7 +90,8 @@ const findBlockAndSentenceIndex = (globalSentenceIndex, lessonContent) => {
 
 
 function PresentationOverlay({
-  sentences = [], // Flat array of all sentence strings
+  content = [], // Array of lesson content
+  sentences = [], // Flat array of all sentence strings  
   isVisible,
   shouldPulse = false,
   pulseKey = 0,
@@ -128,10 +129,9 @@ function PresentationOverlay({
   const highlightTimersRef = useRef([]);
   const countdownTimersRef = useRef([]);
   const currentVoicedBlockInfo = useRef(null);
-  const lessonContent = useRef(getLessonContent());
 
   // --- Determine current item type & data ---
-  const { blockIndex, paragraphIndexInBlock, sentenceIndexInParagraph, blockData, isVoicedBlock, voicedBlockSentencesData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, lessonContent.current);
+  const { blockIndex, paragraphIndexInBlock, sentenceIndexInParagraph, blockData, isVoicedBlock, voicedBlockSentencesData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, content);
   
   // Consider both paragraph and highlight as regular text
   const isRegularText = !isVoicedBlock && !mediaMap[currentGlobalSentenceIndex] && (blockData?.type === 'paragraph' || blockData?.type === 'highlight');
@@ -196,7 +196,7 @@ function PresentationOverlay({
     }
 
     return () => { clearAnimationTimer(); clearMediaTimers(); clearCountdownTimers(); stopAndCleanupAudio(); };
-  }, [isVisible, initialSentenceIndex, sentences.length, stopAndCleanupAudio]);
+  }, [isVisible, initialSentenceIndex, sentences.length, stopAndCleanupAudio, content]);
 
   // Advance Function
   const advance = useCallback((forceGlobalIndex = null) => {
@@ -210,8 +210,8 @@ function PresentationOverlay({
           nextIndex = forceGlobalIndex;
           stopAndCleanupAudio();
       } else {
-          const { blockIndex: currentBlockIdx } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, lessonContent.current);
-          const { blockIndex: nextBlockIndex, blockData: nextBlockData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex + 1, lessonContent.current);
+          const { blockIndex: currentBlockIdx } = findBlockAndSentenceIndex(currentGlobalSentenceIndex, content);
+          const { blockIndex: nextBlockIndex, blockData: nextBlockData } = findBlockAndSentenceIndex(currentGlobalSentenceIndex + 1, content);
           const leavingVoicedBlock = isVoicedBlock && (!nextBlockData || nextBlockData.type !== 'voiced-text' || nextBlockIndex !== currentBlockIdx);
 
           if (leavingVoicedBlock) {
@@ -231,7 +231,7 @@ function PresentationOverlay({
           setProgress(sentences.length > 0 ? ((nextIndex + 1) / sentences.length) * 100 : 0);
           
           // Check if the next item is a paragraph or highlight (regular text)
-          const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, lessonContent.current);
+          const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, content);
           const isNextRegularText = nextItemData && (nextItemData.type === 'paragraph' || nextItemData.type === 'highlight');
           
           // Always auto-play regular text content
@@ -623,7 +623,7 @@ function PresentationOverlay({
         
         // Log the current state for debugging
         const nextIndex = currentGlobalSentenceIndex + 1;
-        const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, lessonContent.current);
+          const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, content);
         console.log('Next content type:', nextItemData?.type);
         
         // Directly advance to next content
