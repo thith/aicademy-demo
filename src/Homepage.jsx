@@ -24,17 +24,37 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
         </div>
 
         {/* Course Illustration */}
-        <img src="/course-illustration.png" alt="Course Illustration" className="w-64 mb-8 mx-auto" />
+        <img src="/course-illustration.png" alt="Course Illustration" className="w-64 mb-2 mx-auto" />
 
-        {/* Course Info - Simplified styling with separator and grey text */}
-        <div className="flex items-center justify-center gap-2 mb-8 text-gray-500 text-xs">
-          <span>By: aicademy team</span>
-          <span className="text-gray-400">•</span>
-          <span>Level: Beginner</span>
+        {/* Author Area */}
+        <div className="flex items-center justify-center gap-2 mb-6 bg-white text-brand-green px-2 py-1 rounded-full mx-auto w-fit">
+          {/* Avatar */}
+          <img src="/favicon.png" alt="AIcademy" className="w-8 h-8 rounded-full" />
+          
+          {/* Text Block */}
+          <div className="text-left">
+            <div className="flex items-center gap-1 text-xs font-medium">
+              <span>aicademy team</span>
+              <i className="fas fa-check-circle text-brand-green text-[10px]"></i>
+            </div>
+            <div className="text-[10px]">
+              <span>Top 3 Instructor</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Syllabus Link */}
+        <div className="text-center mb-6">
+          <button 
+            onClick={() => setShowSyllabus(true)}
+            className="text-brand-green hover:text-brand-green-dark font-medium"
+          >
+            Explore What You'll Learn →
+          </button>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={onStartTheaterMode}
             className="px-8 py-3 bg-brand-green hover:bg-brand-green-dark text-white rounded-lg shadow-sm font-semibold"
@@ -49,14 +69,6 @@ export default function Homepage({ onStartCourse, onStartTheaterMode }) {
           </button>
         </div>
 
-        {/* Syllabus Link */}
-        <button 
-          onClick={() => setShowSyllabus(true)}
-          className="text-brand-green hover:text-brand-green-dark mb-8 block text-center mx-auto"
-        >
-          View Syllabus →
-        </button>
-        
         <SyllabusPopup 
           isOpen={showSyllabus}
           onClose={() => setShowSyllabus(false)}

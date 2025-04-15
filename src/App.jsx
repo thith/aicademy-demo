@@ -33,10 +33,8 @@ function App() {
   const contentRef = useRef(content);
 
   const handleLanguageSelect = async (language) => {
-    console.log('Language selected:', language);
     setIsContentLoading(true);
     const newContent = getLessonContent(language);
-    console.log('Loaded content:', newContent);
     setSelectedLanguage(language);
     setContent(newContent);
     contentRef.current = newContent;
@@ -241,9 +239,7 @@ function App() {
           isOpen={showLanguagePopup}
           onClose={() => setShowLanguagePopup(false)}
             onLanguageSelect={async (language) => {
-              console.log('LanguagePopup - language selected:', language);
               const newContent = await handleLanguageSelect(language);
-              console.log('Content after selection:', newContent.length);
               
               // Wait for content state to fully update
               await new Promise(resolve => {
@@ -259,7 +255,6 @@ function App() {
 
               setIsCourseStarted(true);
               if (startingTheaterMode) {
-                console.log('Initializing theater mode with language:', language, 'Content length:', contentRef.current.length);
                 setPresentationMode(true);
                 window.initialSentenceIndex = 0;
                 setCurrentPage(0);

@@ -236,7 +236,6 @@ function PresentationOverlay({
           
           // Always auto-play regular text content
           if (isNextRegularText) {
-              console.log('Next content is regular text, auto-playing');
               setIsPlaying(true);
           } else {
               // For other content types, follow the original logic
@@ -307,7 +306,6 @@ function PresentationOverlay({
   // --- Voiced Text Logic ---
   const scheduleVoicedTextTimers = useCallback((startTime = 0) => {
     if (!currentVoicedBlockInfo.current || !audioRef.current) return;
-    console.log(`Scheduling timers from audio time: ${startTime}`);
 
     clearHighlightTimers();
     const { sentencesData, blockTotalSentences, blockGlobalStartIndex } = currentVoicedBlockInfo.current;
@@ -349,10 +347,9 @@ function PresentationOverlay({
                             });
 
                             if (isLastCharOfBlock) {
-                                console.log("VOICED BLOCK: Last char timer fired, advancing.");
                                 setTimeout(() => {
                                      const nextGlobalIndex = blockGlobalStartIndex + blockTotalSentences;
-                                     advance(nextGlobalIndex);
+                                     setTimeout(() => advance(nextGlobalIndex), 2000); // Add 2 second delay
                                 }, 50);
                             }
                         }
@@ -377,10 +374,8 @@ function PresentationOverlay({
                 blockGlobalStartIndex: blockStartIndex,
                 blockTotalSentences: voicedBlockSentencesData.length
             };
-            console.log("VOICED BLOCK: Preparing info for", currentVoicedBlockInfo.current.src);
         }
 
-        console.log("VOICED BLOCK: Preloading audio", currentVoicedBlockInfo.current.src);
         audioRef.current = new Audio(currentVoicedBlockInfo.current.src);
         audioRef.current.muted = isMuted;
         audioRef.current.preload = 'auto';
@@ -388,7 +383,6 @@ function PresentationOverlay({
         const handleAudioReady = () => {
             // Only schedule and play if the presentation is actually playing (after countdown)
             if (audioRef.current && isPlaying && countdown === null) {
-                console.log("VOICED BLOCK: Audio ready, scheduling timers from", audioRef.current.currentTime);
                 scheduleVoicedTextTimers(audioRef.current.currentTime);
                 audioRef.current.play().catch(e => console.error("Audio play failed on ready:", e));
             }
@@ -409,7 +403,6 @@ function PresentationOverlay({
     // Play/Schedule timers only when isPlaying becomes true *after* countdown
     } else if (isVisible && isPlaying && countdown === null && isVoicedBlock && audioRef.current && audioRef.current.paused) {
          // If audio was preloaded but not played (e.g., countdown finished), play now
-         console.log("VOICED BLOCK: Playing preloaded audio and scheduling timers from", audioRef.current.currentTime);
          scheduleVoicedTextTimers(audioRef.current.currentTime);
          audioRef.current.play().catch(e => console.error("Audio play failed on delayed start:", e));
     } else if (!isVoicedBlock && audioRef.current) {
@@ -449,7 +442,6 @@ function PresentationOverlay({
         audioRef.current.play().catch(e => console.error("Audio resume failed:", e));
         setTimeout(() => {
           if (audioRef.current) {
-            console.log("VOICED BLOCK: Resuming, scheduling timers from", audioRef.current.currentTime);
             scheduleVoicedTextTimers(audioRef.current.currentTime);
           }
         }, 50);
@@ -594,7 +586,6 @@ function PresentationOverlay({
         const isLastTypedCharDone = isRegularText && charIndex >= currentSentenceText.length;
         
         if (isLastVoicedCharDone || isLastTypedCharDone) {
-          console.log('Button Click: End of presentation, calling onRestart/resetPresentation.');
           if (typeof onRestart === 'function') {
             onRestart();
           } else {
@@ -605,7 +596,6 @@ function PresentationOverlay({
       }
       
       // Normal paragraph/voiced-text toggle play/pause
-      console.log('Button Click: Toggling play/pause for text.');
       togglePlayPause();
       return;
     }
@@ -619,18 +609,15 @@ function PresentationOverlay({
     // Handle game or quiz content
     if (isGameOrQuiz) {
       if (isGameOrQuizDone) {
-        console.log('Game/Quiz completed, advancing to next content');
         
         // Log the current state for debugging
         const nextIndex = currentGlobalSentenceIndex + 1;
           const { blockData: nextItemData } = findBlockAndSentenceIndex(nextIndex, content);
-        console.log('Next content type:', nextItemData?.type);
         
         // Directly advance to next content
         advance();
         
         // Force isPlaying to true immediately and log it
-        console.log('Setting isPlaying to true');
         setIsPlaying(true);
       } else {
         setStatusMessage(
@@ -644,7 +631,6 @@ function PresentationOverlay({
 
     // Handle other media at end of presentation
     if (!isPlaying && isEndOfPresentation && mediaMap[currentGlobalSentenceIndex]) {
-      console.log('Button Click: End of presentation with media, calling onRestart/resetPresentation.');
       if (typeof onRestart === 'function') {
         onRestart();
       } else {
